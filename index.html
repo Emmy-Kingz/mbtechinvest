@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexus Crypto Broker | Institutional Grade Trading</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase App (the core Firebase SDK) -->
+    <!-- Firebase App (the core Firebase SDK) - Using Compat for single-file simplicity -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <!-- Firebase Services -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -35,7 +35,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Smooth transitions */
         .transition-all { transition: all 0.3s ease; }
     </style>
 </head>
@@ -108,7 +107,7 @@
         <div id="app-section" class="hidden pb-24">
             <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:px-8">
                 
-                <!-- Market Ticker (Mobile Friendly) -->
+                <!-- Market Ticker -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8" id="market-prices">
                     <div class="glass p-4 rounded-2xl flex items-center justify-between">
                         <div><p class="text-[10px] uppercase text-slate-400">Bitcoin</p><p id="price-btc" class="font-bold text-sm">...</p></div>
@@ -170,7 +169,6 @@
                 <!-- Tab: Investment -->
                 <div id="tab-investment" class="tab-content active">
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Plans (Same logic as before but with updated styling) -->
                         <div class="glass p-8 rounded-3xl border-b-4 border-slate-500 hover:scale-[1.02] transition-all">
                             <span class="text-slate-400 text-xs font-bold uppercase tracking-widest">Starter</span>
                             <h3 class="text-2xl font-bold mt-1">Silver Plan</h3>
@@ -261,9 +259,6 @@
                     <div class="glass p-6 rounded-3xl">
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                             <h3 class="text-2xl font-bold">Investor Console</h3>
-                            <div class="flex gap-2">
-                                <span class="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-lg text-xs font-bold uppercase">Admin Active</span>
-                            </div>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left">
@@ -275,9 +270,7 @@
                                         <th class="pb-4">Operations</th>
                                     </tr>
                                 </thead>
-                                <tbody id="admin-user-list" class="divide-y divide-slate-800">
-                                    <!-- Dynamic Content -->
-                                </tbody>
+                                <tbody id="admin-user-list" class="divide-y divide-slate-800"></tbody>
                             </table>
                         </div>
                     </div>
@@ -287,7 +280,7 @@
         </div>
     </main>
 
-    <!-- MOBILE NAVIGATION BAR (Shown on small screens) -->
+    <!-- MOBILE NAVIGATION BAR -->
     <div id="mobile-nav" class="md:hidden glass fixed bottom-0 left-0 right-0 h-16 border-t border-slate-800 flex justify-around items-center z-50 px-2 hidden">
         <button onclick="showTab('investment')" class="flex flex-col items-center gap-1 text-blue-400">
             <i class="fas fa-chart-pie"></i>
@@ -315,49 +308,39 @@
                         <span class="text-lg font-bold">NEXUS<span class="text-blue-500">BROKER</span></span>
                     </div>
                     <p class="text-slate-400 text-sm max-w-sm">
-                        Premier crypto-asset management and brokerage services. Regulated, secure, and focused on institutional-grade returns for retail investors.
+                        Premier crypto-asset management and brokerage services. Regulated, secure, and focused on institutional-grade returns.
                     </p>
                 </div>
                 <div>
                     <h4 class="font-bold mb-4 text-sm uppercase tracking-widest text-slate-500">Support</h4>
                     <ul class="text-slate-400 text-sm space-y-2">
-                        <li><a href="#" class="hover:text-blue-400 transition-all">Help Center</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-all">Security Audit</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-all">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Help Center</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Security Audit</a></li>
                     </ul>
                 </div>
                 <div>
                     <h4 class="font-bold mb-4 text-sm uppercase tracking-widest text-slate-500">Compliance</h4>
                     <ul class="text-slate-400 text-sm space-y-2">
-                        <li><a href="#" class="hover:text-blue-400 transition-all">Terms of Service</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-all">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-all">Risk Warning</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Terms</a></li>
+                        <li><a href="#" class="hover:text-blue-400">Privacy</a></li>
                     </ul>
-                </div>
-            </div>
-            <div class="pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
-                <p class="text-slate-500 text-[10px] uppercase font-bold tracking-widest">© 2026 Nexus Trading Group Inc. All Rights Reserved.</p>
-                <div class="flex gap-6 text-slate-400">
-                    <i class="fab fa-telegram-plane hover:text-blue-400 cursor-pointer"></i>
-                    <i class="fab fa-twitter hover:text-blue-400 cursor-pointer"></i>
-                    <i class="fab fa-linkedin-in hover:text-blue-400 cursor-pointer"></i>
                 </div>
             </div>
         </div>
     </footer>
 
-    <!-- Toast Component -->
     <div id="toast" class="fixed bottom-20 md:bottom-10 right-4 translate-y-32 transition duration-500 glass px-6 py-4 rounded-2xl shadow-2xl z-[100] text-sm font-semibold max-w-[90vw]"></div>
 
     <script>
-        // --- FIREBASE CONFIG ---
+        // --- FIREBASE CONFIG (Updated with your project keys) ---
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyDRwQQt0pX8ftTQRVlTODwcXQiVoYJYgvM",
+            authDomain: "mbtechinvest.firebaseapp.com",
+            projectId: "mbtechinvest",
+            storageBucket: "mbtechinvest.firebasestorage.app",
+            messagingSenderId: "205722731192",
+            appId: "1:205722731192:web:5a2879d9aaa008239aea4d",
+            measurementId: "G-2LBHLP78K1"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -435,7 +418,6 @@
 
         function logout() { auth.signOut(); location.reload(); }
 
-        // --- APP STATE ---
         auth.onAuthStateChanged(user => {
             const appSection = document.getElementById('app-section');
             const authSection = document.getElementById('auth-section');
@@ -449,7 +431,7 @@
                 mobileNav.classList.remove('hidden');
                 listenToUserData(user.uid);
                 updateMarketPrices();
-                setInterval(updateMarketPrices, 60000); // Update every minute
+                setInterval(updateMarketPrices, 60000);
             } else {
                 authSection.classList.remove('hidden');
                 appSection.classList.add('hidden');
@@ -479,7 +461,6 @@
         function updateDashboardUI(data) {
             const capital = data.investedCapital || 0;
             const tier = data.tier || 'None';
-            
             document.getElementById('stat-capital').innerText = `$${capital.toLocaleString()}`;
             document.getElementById('user-tier-badge').innerText = tier;
 
@@ -488,26 +469,22 @@
                 const now = new Date();
                 const hoursPassed = (now - start) / (1000 * 60 * 60);
                 const intervals = Math.floor(hoursPassed / 12);
-                
                 const rate = RATES[tier] || 0;
                 const currentRevenue = capital * Math.pow(1 + rate, intervals);
                 const projected = capital * Math.pow(1 + rate, intervals + 6);
-
                 document.getElementById('stat-revenue').innerText = `$${currentRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
                 document.getElementById('stat-projected').innerText = `$${projected.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-
                 const daysPassed = hoursPassed / 24;
                 const statusEl = document.getElementById('eligibility-status');
                 if (daysPassed >= 30) {
                     statusEl.innerHTML = `<i class="fas fa-check-circle text-green-500"></i> <span class="text-green-400 font-bold uppercase">Ready for Withdrawal</span>`;
                 } else {
-                    const remaining = Math.ceil(30 - daysPassed);
-                    statusEl.innerHTML = `<i class="fas fa-clock text-yellow-500"></i> <span class="text-slate-300 uppercase">Lock ends in ${remaining} days</span>`;
+                    statusEl.innerHTML = `<i class="fas fa-clock text-yellow-500"></i> <span class="text-slate-300 uppercase">Lock ends in ${Math.ceil(30 - daysPassed)} days</span>`;
                 }
             } else {
                 document.getElementById('stat-revenue').innerText = "$0.00";
                 document.getElementById('stat-projected').innerText = "$0.00";
-                document.getElementById('eligibility-status').innerHTML = `<i class="fas fa-info-circle text-blue-500"></i> <span class="text-slate-400">No active investment found</span>`;
+                document.getElementById('eligibility-status').innerHTML = `<i class="fas fa-info-circle text-blue-500"></i> <span class="text-slate-400">No active investment</span>`;
             }
         }
 
@@ -518,7 +495,7 @@
                 document.getElementById('price-btc').innerText = `$${data.bitcoin.usd.toLocaleString()}`;
                 document.getElementById('price-eth').innerText = `$${data.ethereum.usd.toLocaleString()}`;
                 document.getElementById('price-sol').innerText = `$${data.solana.usd.toLocaleString()}`;
-            } catch (e) { console.warn("Market data throttled or unreachable"); }
+            } catch (e) { console.warn("Market data unavailable"); }
         }
 
         function showTab(tabId) {
@@ -527,29 +504,22 @@
                 el.classList.remove('bg-blue-600');
                 el.classList.add('text-slate-400');
             });
-            
             document.getElementById(`tab-${tabId}`).classList.add('active');
             event.currentTarget.classList.add('bg-blue-600');
             event.currentTarget.classList.remove('text-slate-400');
-            
-            // Sync mobile icons
-            document.querySelectorAll('#mobile-nav button').forEach(b => b.classList.add('text-slate-500'));
-            // Find mobile matching button and light it up if possible
         }
 
         function initiateDeposit(tier) {
             const wallet = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"; 
-            const msg = `INVESTMENT PORTAL\n\nTier: ${tier}\nNetwork: BTC SegWit\n\nAddress: ${wallet}\n\nTransfer the amount and contact support for manual activation.`;
-            alert(msg);
+            alert(`INVESTMENT PORTAL\n\nTier: ${tier}\nNetwork: BTC\nAddress: ${wallet}\n\nContact support after transfer.`);
         }
 
         function requestWithdrawal() {
             const amount = document.getElementById('withdraw-amount').value;
             if (!amount || amount <= 0) return showToast("Enter a valid amount", true);
-            showToast("Withdrawal ticket generated. Awaiting blockchain confirmation.");
+            showToast("Withdrawal ticket generated.");
         }
 
-        // --- ADMIN ---
         async function loadAdminData() {
             db.collection('users').onSnapshot(snapshot => {
                 const list = document.getElementById('admin-user-list');
@@ -558,16 +528,11 @@
                     const u = doc.data();
                     if (u.uid === auth.currentUser.uid) return;
                     list.innerHTML += `
-                        <tr class="hover:bg-slate-800/30 transition-all">
-                            <td class="py-4">
-                                <p class="font-bold text-sm">${u.name}</p>
-                                <p class="text-[10px] text-slate-500">${u.email}</p>
-                            </td>
-                            <td><span class="text-[10px] px-2 py-1 bg-slate-800 rounded-full font-bold text-slate-300 uppercase">${u.tier}</span></td>
+                        <tr class="hover:bg-slate-800/30">
+                            <td class="py-4"><p class="font-bold text-sm">${u.name}</p></td>
+                            <td><span class="text-[10px] px-2 py-1 bg-slate-800 rounded-full">${u.tier}</span></td>
                             <td class="font-bold text-sm text-blue-400">$${u.investedCapital.toLocaleString()}</td>
-                            <td>
-                                <button onclick="updateUserPrompt('${u.uid}')" class="text-xs font-bold text-blue-500 hover:text-blue-400">MANAGE</button>
-                            </td>
+                            <td><button onclick="updateUserPrompt('${u.uid}')" class="text-xs text-blue-500">MANAGE</button></td>
                         </tr>
                     `;
                 });
@@ -575,7 +540,7 @@
         }
 
         async function updateUserPrompt(uid) {
-            const newCapital = prompt("Update Capital Amount (USD):");
+            const newCapital = prompt("Update Capital (USD):");
             const newTier = prompt("Assign Tier (Silver, Gold, Diamond):");
             if (newCapital !== null && newTier !== null) {
                 await db.collection('users').doc(uid).update({
@@ -583,7 +548,7 @@
                     tier: newTier,
                     investmentDate: firebase.firestore.Timestamp.now()
                 });
-                showToast("Investor Record Updated");
+                showToast("Updated");
             }
         }
 
