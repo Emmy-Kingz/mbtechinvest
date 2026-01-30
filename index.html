@@ -258,6 +258,23 @@
                 <!-- Tab: Admin Panel -->
                 <div id="tab-admin" class="tab-content">
                     <div class="grid grid-cols-1 gap-8">
+                        
+                        <!-- Admin Platform Stats -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="glass p-6 rounded-3xl border-l-4 border-blue-500">
+                                <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Total Platform Capital</p>
+                                <h4 id="admin-stat-total-capital" class="text-2xl font-bold">$0.00</h4>
+                            </div>
+                            <div class="glass p-6 rounded-3xl border-l-4 border-green-500">
+                                <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Active Investors</p>
+                                <h4 id="admin-stat-active-users" class="text-2xl font-bold">0</h4>
+                            </div>
+                            <div class="glass p-6 rounded-3xl border-l-4 border-purple-500">
+                                <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Total Registrations</p>
+                                <h4 id="admin-stat-total-users" class="text-2xl font-bold">0</h4>
+                            </div>
+                        </div>
+
                         <!-- Deposit Address Management -->
                         <div class="glass p-6 rounded-3xl">
                             <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
@@ -423,10 +440,13 @@
                 globalSettings = doc.data();
                 // Update admin inputs if visible
                 if (currentUserData?.isAdmin) {
-                    document.getElementById('admin-addr-btc').value = globalSettings.btc || '';
-                    document.getElementById('admin-addr-eth').value = globalSettings.eth || '';
-                    document.getElementById('admin-addr-usdt').value = globalSettings.usdt || '';
-                    document.getElementById('admin-addr-sol').value = globalSettings.sol || '';
+                    const btcInput = document.getElementById('admin-addr-btc');
+                    if(btcInput) {
+                        btcInput.value = globalSettings.btc || '';
+                        document.getElementById('admin-addr-eth').value = globalSettings.eth || '';
+                        document.getElementById('admin-addr-usdt').value = globalSettings.usdt || '';
+                        document.getElementById('admin-addr-sol').value = globalSettings.sol || '';
+                    }
                 }
             }
         });
@@ -630,36 +650,54 @@
             db.collection('users').onSnapshot(snapshot => {
                 const list = document.getElementById('admin-user-list');
                 list.innerHTML = '';
+                
+                let totalCapital = 0;
+                let activeUsers = 0;
+                let totalUsers = snapshot.size;
+
                 snapshot.forEach(doc => {
                     const u = doc.data();
+                    
+                    // Accumulate platform stats
+                    totalCapital += (u.investedCapital || 0);
+                    if ((u.investedCapital || 0) > 0) activeUsers++;
+
+                    // Render table row (exclude current admin from management list to avoid self-locking)
                     if (u.uid === auth.currentUser.uid) return;
+                    
                     list.innerHTML += `
                         <tr class="hover:bg-slate-800/30">
                             <td class="py-4"><p class="font-bold text-sm">${u.name}</p></td>
                             <td><span class="text-[10px] px-2 py-1 bg-slate-800 rounded-full">${u.tier}</span></td>
-                            <td class="font-bold text-sm text-blue-400">$${u.investedCapital.toLocaleString()}</td>
+                            <td class="font-bold text-sm text-blue-400">$${(u.investedCapital || 0).toLocaleString()}</td>
                             <td><button onclick="updateUserPrompt('${u.uid}')" class="text-xs text-blue-500">MANAGE</button></td>
                         </tr>
                     `;
                 });
+
+                // Update Admin Dashboard Stats
+                document.getElementById('admin-stat-total-capital').innerText = `$${totalCapital.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                document.getElementById('admin-stat-active-users').innerText = activeUsers;
+                document.getElementById('admin-stat-total-users').innerText = totalUsers;
             });
         }
 
         async function updateUserPrompt(uid) {
             const newCapital = prompt("Update Capital (USD):");
-            const newTier = prompt("Assign Tier (Silver, Gold, Diamond):");
+            const newTier = prompt("Assign Tier (Silver, Gold, Diamond, None):");
             if (newCapital !== null && newTier !== null) {
                 await db.collection('users').doc(uid).update({
-                    investedCapital: parseFloat(newCapital),
-                    tier: newTier,
+                    investedCapital: parseFloat(newCapital) || 0,
+                    tier: newTier || 'None',
                     investmentDate: firebase.firestore.Timestamp.now()
                 });
-                showToast("Updated");
+                showToast("User details updated.");
             }
         }
 
         function showToast(msg, isError = false) {
             const t = document.getElementById('toast');
+            if(!t) return;
             t.innerText = msg;
             t.style.borderLeft = isError ? "4px solid #ef4444" : "4px solid #3b82f6";
             t.classList.remove('translate-y-32');
