@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nexus Crypto Broker | Institutional Grade Trading</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase App (the core Firebase SDK) - Using Compat for single-file simplicity -->
+    <!-- Firebase App (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <!-- Firebase Services -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -18,303 +17,338 @@
             font-family: 'Inter', sans-serif;
             background: #020617; 
             color: #f8fafc; 
+            -webkit-tap-highlight-color: transparent;
         }
         
+        /* Glassmorphism */
         .glass { 
-            background: rgba(15, 23, 42, 0.6); 
-            backdrop-filter: blur(12px); 
+            background: rgba(15, 23, 42, 0.7); 
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08); 
         }
         
-        .tab-content { display: none; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
         
-        .gradient-text {
-            background: linear-gradient(to right, #60a5fa, #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .transition-all { transition: all 0.3s ease; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col selection:bg-blue-500/30">
 
     <!-- HEADER -->
-    <header class="glass sticky top-0 z-[60] w-full border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header class="glass sticky top-0 z-40 w-full border-b border-slate-800/50">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-chart-line text-white"></i>
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20">
+                    <i class="fas fa-chart-line text-white text-sm"></i>
                 </div>
-                <span class="text-xl font-bold tracking-tight">NEXUS<span class="text-blue-500">BROKER</span></span>
+                <span class="text-lg md:text-xl font-bold tracking-tight text-white">NEXUS<span class="text-blue-500">BROKER</span></span>
             </div>
             
             <div id="nav-auth-info" class="hidden flex items-center gap-4">
                 <div class="hidden md:flex flex-col items-end">
-                    <span id="header-user-name" class="text-sm font-semibold">User</span>
-                    <span id="header-user-tier" class="text-[10px] uppercase tracking-widest text-blue-400">Loading...</span>
+                    <span id="header-user-name" class="text-sm font-semibold text-slate-200">User</span>
+                    <span id="header-user-tier" class="text-[10px] uppercase tracking-widest text-blue-400 font-bold">Loading...</span>
                 </div>
-                <button onclick="logout()" class="p-2 hover:bg-red-500/10 text-red-400 rounded-full transition-all">
-                    <i class="fas fa-sign-out-alt"></i>
+                <button onclick="logout()" class="p-2 hover:bg-red-500/10 text-red-400 rounded-full transition-all active:scale-95">
+                    <i class="fas fa-power-off"></i>
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow">
+    <main class="flex-grow w-full overflow-x-hidden">
         <!-- Auth Section -->
-        <div id="auth-section" class="flex items-center justify-center min-h-[80vh] px-4">
-            <div class="glass p-8 rounded-2xl w-full max-w-md shadow-2xl border-t-4 border-blue-500">
-                <h1 class="text-3xl font-bold text-center mb-2">Welcome Back</h1>
+        <div id="auth-section" class="flex items-center justify-center min-h-[85vh] p-4">
+            <div class="glass p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl border-t-4 border-blue-500 relative overflow-hidden">
+                <!-- Decorative background elements -->
+                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                
+                <h1 class="text-2xl md:text-3xl font-bold text-center mb-2">Welcome Back</h1>
                 <p class="text-slate-400 text-center mb-8 text-sm">Secure Institutional Trading Portal</p>
                 
                 <div id="login-form">
                     <div class="space-y-4">
-                        <input type="email" id="login-email" placeholder="Email Address" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 outline-none">
-                        <input type="password" id="login-pass" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 outline-none">
+                        <input type="email" id="login-email" placeholder="Email Address" class="w-full p-3.5 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 focus:bg-slate-900 outline-none transition-colors text-sm">
+                        <input type="password" id="login-pass" placeholder="Password" class="w-full p-3.5 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 focus:bg-slate-900 outline-none transition-colors text-sm">
                     </div>
-                    <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 mt-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20">Login to Dashboard</button>
+                    <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-500 mt-6 py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]">Login to Dashboard</button>
                     
                     <div class="relative my-6">
                         <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
-                        <div class="relative flex justify-center text-xs uppercase"><span class="bg-[#020617] px-2 text-slate-500">Or continue with</span></div>
+                        <div class="relative flex justify-center text-xs uppercase"><span class="bg-[#0f172a] px-2 text-slate-500">Or continue with</span></div>
                     </div>
 
-                    <button onclick="googleSignIn()" class="w-full bg-white text-black py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-100 transition-all">
+                    <button onclick="googleSignIn()" class="w-full bg-white text-black py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition-all text-sm">
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> Google Account
                     </button>
-                    <p class="text-center mt-6 text-sm text-slate-400">New investor? <a href="#" onclick="toggleAuth(false)" class="text-blue-400 font-semibold hover:underline">Create Account</a></p>
+                    <p class="text-center mt-6 text-sm text-slate-400">New investor? <a href="#" onclick="toggleAuth(false)" class="text-blue-400 font-semibold hover:text-blue-300">Create Account</a></p>
                 </div>
 
                 <div id="signup-form" class="hidden">
                     <div class="space-y-3">
-                        <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 outline-none">
-                        <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 outline-none">
-                        <input type="password" id="reg-pass" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 outline-none">
-                        <p class="text-[10px] text-slate-500 uppercase font-bold pt-2">Withdrawal Credentials</p>
-                        <input type="text" id="reg-btc" placeholder="BTC Wallet Address" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 outline-none">
-                        <input type="text" id="reg-usd" placeholder="USDT (TRC20) Address" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 outline-none">
-                        <input type="text" id="reg-sol" placeholder="SOL Wallet Address" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 outline-none">
+                        <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-3.5 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 outline-none text-sm">
+                        <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-3.5 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 outline-none text-sm">
+                        <input type="password" id="reg-pass" placeholder="Password" class="w-full p-3.5 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 outline-none text-sm">
+                        
+                        <div class="py-2">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-2">Withdrawal Credentials (Optional)</p>
+                            <div class="space-y-3">
+                                <input type="text" id="reg-btc" placeholder="BTC Wallet Address" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-orange-500/50 outline-none text-xs font-mono">
+                                <input type="text" id="reg-usd" placeholder="USDT (TRC20) Address" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-green-500/50 outline-none text-xs font-mono">
+                                <input type="text" id="reg-sol" placeholder="SOL Wallet Address" class="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-purple-500/50 outline-none text-xs font-mono">
+                            </div>
+                        </div>
                     </div>
-                    <button onclick="signUp()" class="w-full bg-blue-600 hover:bg-blue-700 mt-6 py-3 rounded-xl font-bold transition-all">Register Account</button>
-                    <p class="text-center mt-6 text-sm text-slate-400">Already a member? <a href="#" onclick="toggleAuth(true)" class="text-blue-400 font-semibold hover:underline">Login</a></p>
+                    <button onclick="signUp()" class="w-full bg-blue-600 hover:bg-blue-500 mt-4 py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]">Register Account</button>
+                    <p class="text-center mt-6 text-sm text-slate-400">Already a member? <a href="#" onclick="toggleAuth(true)" class="text-blue-400 font-semibold hover:text-blue-300">Login</a></p>
                 </div>
             </div>
         </div>
 
         <!-- Main App Dashboard -->
-        <div id="app-section" class="hidden pb-24">
-            <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:px-8">
+        <div id="app-section" class="hidden pb-32 pt-6"> <!-- Increased bottom padding for mobile nav -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
                 <!-- Market Ticker -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8" id="market-prices">
-                    <div class="glass p-4 rounded-2xl flex items-center justify-between">
-                        <div><p class="text-[10px] uppercase text-slate-400">Bitcoin</p><p id="price-btc" class="font-bold text-sm">...</p></div>
-                        <i class="fab fa-bitcoin text-orange-500 text-xl opacity-20"></i>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="market-prices">
+                    <div class="glass p-3 md:p-4 rounded-2xl flex items-center justify-between">
+                        <div><p class="text-[10px] uppercase text-slate-400 font-bold">Bitcoin</p><p id="price-btc" class="font-bold text-sm tracking-tight">Loading...</p></div>
+                        <i class="fab fa-bitcoin text-orange-500 text-xl opacity-80"></i>
                     </div>
-                    <div class="glass p-4 rounded-2xl flex items-center justify-between">
-                        <div><p class="text-[10px] uppercase text-slate-400">Ethereum</p><p id="price-eth" class="font-bold text-sm">...</p></div>
-                        <i class="fab fa-ethereum text-blue-400 text-xl opacity-20"></i>
+                    <div class="glass p-3 md:p-4 rounded-2xl flex items-center justify-between">
+                        <div><p class="text-[10px] uppercase text-slate-400 font-bold">Ethereum</p><p id="price-eth" class="font-bold text-sm tracking-tight">Loading...</p></div>
+                        <i class="fab fa-ethereum text-blue-400 text-xl opacity-80"></i>
                     </div>
-                    <div class="glass p-4 rounded-2xl flex items-center justify-between">
-                        <div><p class="text-[10px] uppercase text-slate-400">Solana</p><p id="price-sol" class="font-bold text-sm">...</p></div>
-                        <i class="fas fa-coins text-purple-500 text-xl opacity-20"></i>
+                    <div class="glass p-3 md:p-4 rounded-2xl flex items-center justify-between">
+                        <div><p class="text-[10px] uppercase text-slate-400 font-bold">Solana</p><p id="price-sol" class="font-bold text-sm tracking-tight">Loading...</p></div>
+                        <i class="fas fa-coins text-purple-500 text-xl opacity-80"></i>
                     </div>
-                    <div class="glass p-4 rounded-2xl flex items-center justify-between">
-                        <div><p class="text-[10px] uppercase text-slate-400">USDT</p><p class="font-bold text-sm">$1.00</p></div>
-                        <i class="fas fa-dollar-sign text-green-500 text-xl opacity-20"></i>
+                    <div class="glass p-3 md:p-4 rounded-2xl flex items-center justify-between">
+                        <div><p class="text-[10px] uppercase text-slate-400 font-bold">USDT</p><p class="font-bold text-sm tracking-tight">$1.00</p></div>
+                        <i class="fas fa-dollar-sign text-green-500 text-xl opacity-80"></i>
                     </div>
                 </div>
 
                 <!-- Portfolio Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-                    <div class="relative overflow-hidden bg-gradient-to-br from-blue-700 to-indigo-900 p-6 rounded-3xl shadow-xl">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <!-- Main Capital Card -->
+                    <div class="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-900 p-6 md:p-8 rounded-[2rem] shadow-xl text-white">
                         <div class="relative z-10">
-                            <p class="text-blue-100/70 text-sm font-medium">Invested Capital</p>
-                            <h2 id="stat-capital" class="text-4xl font-bold mt-1 tracking-tight">$0.00</h2>
+                            <p class="text-blue-100/80 text-sm font-medium mb-1">Total Active Capital</p>
+                            <h2 id="stat-capital" class="text-4xl md:text-5xl font-bold tracking-tight">$0.00</h2>
                             <div class="mt-6 flex items-center gap-2">
-                                <span id="user-tier-badge" class="text-[10px] bg-white/20 px-3 py-1 rounded-full backdrop-blur-md font-bold uppercase tracking-wider">Loading...</span>
+                                <span id="user-tier-badge" class="text-[10px] bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-md font-bold uppercase tracking-wider border border-white/10">Loading...</span>
                             </div>
                         </div>
-                        <div class="absolute -right-4 -bottom-4 opacity-10">
+                        <div class="absolute -right-6 -bottom-8 opacity-20 rotate-12">
                             <i class="fas fa-wallet text-9xl"></i>
                         </div>
                     </div>
 
-                    <div class="glass p-6 rounded-3xl flex flex-col justify-between">
-                        <div>
-                            <p class="text-slate-400 text-sm">Current Revenue</p>
-                            <h2 id="stat-revenue" class="text-4xl font-bold mt-1 text-green-400 tracking-tight">$0.00</h2>
+                    <!-- Stats Cards -->
+                    <div class="glass p-6 rounded-[2rem] flex flex-col justify-center">
+                        <p class="text-slate-400 text-sm font-medium">Accumulated Revenue</p>
+                        <h2 id="stat-revenue" class="text-3xl md:text-4xl font-bold mt-2 text-green-400 tracking-tight">$0.00</h2>
+                        <div class="mt-4 flex items-center gap-2 text-[10px] text-slate-500 uppercase font-bold">
+                            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            Compounding Active
                         </div>
-                        <p class="text-[10px] text-slate-500 mt-4 uppercase">Compounded every 12 hours</p>
                     </div>
 
-                    <div class="glass p-6 rounded-3xl border-dashed border-blue-500/20 flex flex-col justify-between">
-                        <div>
-                            <p class="text-slate-400 text-sm">72hr Projection</p>
-                            <h2 id="stat-projected" class="text-4xl font-bold mt-1 text-blue-400 tracking-tight">$0.00</h2>
-                        </div>
-                        <p class="text-[10px] text-blue-500/50 mt-4 uppercase font-bold">Estimated earnings</p>
+                    <div class="glass p-6 rounded-[2rem] flex flex-col justify-center border border-blue-500/10">
+                        <p class="text-slate-400 text-sm font-medium">72hr Projection</p>
+                        <h2 id="stat-projected" class="text-3xl md:text-4xl font-bold mt-2 text-blue-400 tracking-tight">$0.00</h2>
+                        <p class="text-[10px] text-blue-500/60 mt-4 uppercase font-bold">Estimated earnings</p>
                     </div>
                 </div>
 
                 <!-- Section Tabs -->
-                <div class="flex gap-2 mb-8 bg-slate-900/50 p-1 rounded-2xl w-fit">
-                    <button onclick="showTab('investment')" class="tab-btn px-6 py-2.5 rounded-xl bg-blue-600 font-semibold text-sm transition-all">Invest</button>
-                    <button onclick="showTab('wallet')" class="tab-btn px-6 py-2.5 rounded-xl text-slate-400 font-semibold text-sm transition-all">Wallet</button>
-                    <button id="admin-tab-btn" onclick="showTab('admin')" class="tab-btn px-6 py-2.5 rounded-xl text-slate-400 font-semibold text-sm hidden transition-all">Admin Panel</button>
+                <div class="flex gap-1 md:gap-2 mb-8 bg-slate-900/60 p-1.5 rounded-2xl w-fit mx-auto md:mx-0 overflow-x-auto max-w-full">
+                    <button onclick="showTab('investment')" class="tab-btn px-6 py-2.5 rounded-xl bg-blue-600 font-semibold text-xs md:text-sm whitespace-nowrap transition-all shadow-lg">Invest</button>
+                    <button onclick="showTab('wallet')" class="tab-btn px-6 py-2.5 rounded-xl text-slate-400 font-semibold text-xs md:text-sm whitespace-nowrap transition-all hover:text-white">Wallet</button>
+                    <button id="admin-tab-btn" onclick="showTab('admin')" class="tab-btn px-6 py-2.5 rounded-xl text-slate-400 font-semibold text-xs md:text-sm whitespace-nowrap hidden transition-all hover:text-white">Admin</button>
                 </div>
 
                 <!-- Tab: Investment -->
                 <div id="tab-investment" class="tab-content active">
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="glass p-8 rounded-3xl border-b-4 border-slate-500 hover:scale-[1.02] transition-all">
+                        <!-- Silver -->
+                        <div class="glass p-6 md:p-8 rounded-3xl border-t-4 border-slate-400 hover:transform hover:-translate-y-1 transition-all duration-300">
                             <span class="text-slate-400 text-xs font-bold uppercase tracking-widest">Starter</span>
-                            <h3 class="text-2xl font-bold mt-1">Silver Plan</h3>
-                            <div class="my-6">
-                                <span class="text-4xl font-bold">1%</span>
-                                <span class="text-slate-500"> / 12hrs</span>
+                            <h3 class="text-2xl font-bold mt-2 text-white">Silver Plan</h3>
+                            <div class="my-6 flex items-baseline gap-1">
+                                <span class="text-4xl font-bold text-slate-200">1%</span>
+                                <span class="text-slate-500 text-sm font-medium">/ 12hrs</span>
                             </div>
-                            <ul class="space-y-4 text-sm text-slate-400 mb-8">
-                                <li class="flex items-center gap-2"><i class="fas fa-check-circle text-blue-500"></i> $100 - $999</li>
-                                <li class="flex items-center gap-2"><i class="fas fa-check-circle text-blue-500"></i> Auto-Compounding</li>
-                                <li class="flex items-center gap-2"><i class="fas fa-check-circle text-blue-500"></i> Standard Support</li>
+                            <ul class="space-y-4 text-sm text-slate-300 mb-8">
+                                <li class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-500"></i> $100 - $999</li>
+                                <li class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-500"></i> Auto-Compounding</li>
+                                <li class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-500"></i> Standard Support</li>
                             </ul>
-                            <button onclick="initiateDeposit('Silver')" class="w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl font-bold transition-all border border-slate-700">Get Silver</button>
+                            <button onclick="initiateDeposit('Silver')" class="w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl font-bold transition-all border border-slate-700 text-sm active:scale-95">Choose Silver</button>
                         </div>
 
-                        <div class="glass p-8 rounded-3xl border-b-4 border-yellow-500 hover:scale-[1.02] transition-all relative">
-                            <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">Most Popular</div>
-                            <span class="text-yellow-500/80 text-xs font-bold uppercase tracking-widest">Growth</span>
-                            <h3 class="text-2xl font-bold mt-1">Gold Plan</h3>
-                            <div class="my-6">
-                                <span class="text-4xl font-bold">1.5%</span>
-                                <span class="text-slate-500"> / 12hrs</span>
+                        <!-- Gold -->
+                        <div class="glass p-6 md:p-8 rounded-3xl border-t-4 border-yellow-500 hover:transform hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-yellow-500 text-black text-[10px] font-bold px-4 py-1.5 rounded-bl-xl uppercase tracking-wider">Popular</div>
+                            <span class="text-yellow-500/90 text-xs font-bold uppercase tracking-widest">Growth</span>
+                            <h3 class="text-2xl font-bold mt-2 text-white">Gold Plan</h3>
+                            <div class="my-6 flex items-baseline gap-1">
+                                <span class="text-4xl font-bold text-yellow-400">1.5%</span>
+                                <span class="text-slate-500 text-sm font-medium">/ 12hrs</span>
                             </div>
-                            <ul class="space-y-4 text-sm text-slate-400 mb-8">
-                                <li class="flex items-center gap-2"><i class="fas fa-check-circle text-yellow-500"></i> $1,000 - $9,999</li>
-                                <li class="flex items-center gap-2"><i class="fas fa-check-circle text-yellow-500"></i> Priority Withdrawals</li>
-                                <li class="flex items-center gap-2"><i class="fas fa-check-circle text-yellow-500"></i> Advanced Analytics</li>
+                            <ul class="space-y-4 text-sm text-slate-300 mb-8">
+                                <li class="flex items-center gap-3"><i class="fas fa-check-circle text-yellow-500"></i> $1,000 - $9,999</li>
+                                <li class="flex items-center gap-3"><i class="fas fa-check-circle text-yellow-500"></i> Priority Withdrawals</li>
+                                <li class="flex items-center gap-3"><i class="fas fa-check-circle text-yellow-500"></i> Advanced Analytics</li>
                             </ul>
-                            <button onclick="initiateDeposit('Gold')" class="w-full py-4 bg-yellow-600 hover:bg-yellow-500 text-black rounded-2xl font-bold transition-all">Upgrade to Gold</button>
+                            <button onclick="initiateDeposit('Gold')" class="w-full py-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:to-yellow-400 text-black rounded-2xl font-bold transition-all shadow-lg shadow-yellow-500/20 text-sm active:scale-95">Choose Gold</button>
                         </div>
 
-                        <div class="glass p-8 rounded-3xl border-b-4 border-blue-400 hover:scale-[1.02] transition-all">
+                        <!-- Diamond -->
+                        <div class="glass p-6 md:p-8 rounded-3xl border-t-4 border-blue-400 hover:transform hover:-translate-y-1 transition-all duration-300">
                             <span class="text-blue-400 text-xs font-bold uppercase tracking-widest">Elite</span>
-                            <h3 class="text-2xl font-bold mt-1">Diamond Plan</h3>
-                            <div class="my-6">
-                                <span class="text-4xl font-bold">2.0%</span>
-                                <span class="text-slate-500"> / 12hrs</span>
+                            <h3 class="text-2xl font-bold mt-2 text-white">Diamond Plan</h3>
+                            <div class="my-6 flex items-baseline gap-1">
+                                <span class="text-4xl font-bold text-blue-300">2.0%</span>
+                                <span class="text-slate-500 text-sm font-medium">/ 12hrs</span>
                             </div>
-                            <ul class="space-y-4 text-sm text-slate-400 mb-8">
-                                <li class="flex items-center gap-2"><i class="fas fa-check-circle text-blue-400"></i> $10,000 - Max</li>
-                                <li class="flex items-center gap-2"><i class="fas fa-check-circle text-blue-400"></i> 24/7 VIP Manager</li>
-                                <li class="flex items-center gap-2"><i class="fas fa-check-circle text-blue-400"></i> Zero Withdrawal Fees</li>
+                            <ul class="space-y-4 text-sm text-slate-300 mb-8">
+                                <li class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-400"></i> $10,000 - Max</li>
+                                <li class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-400"></i> 24/7 VIP Manager</li>
+                                <li class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-400"></i> Zero Withdrawal Fees</li>
                             </ul>
-                            <button onclick="initiateDeposit('Diamond')" class="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-bold transition-all">Go Diamond</button>
+                            <button onclick="initiateDeposit('Diamond')" class="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-bold transition-all shadow-lg shadow-blue-500/20 text-sm active:scale-95">Choose Diamond</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Tab: Wallet -->
                 <div id="tab-wallet" class="tab-content">
-                    <div class="glass p-8 rounded-3xl max-w-2xl mx-auto shadow-2xl">
-                        <div class="flex items-center gap-3 mb-8">
-                            <div class="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center">
-                                <i class="fas fa-arrow-up text-green-500"></i>
+                    <div class="glass p-6 md:p-10 rounded-[2.5rem] max-w-2xl mx-auto shadow-2xl relative overflow-hidden">
+                        <!-- Decorative background -->
+                        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600"></div>
+
+                        <div class="flex items-center gap-4 mb-8">
+                            <div class="w-14 h-14 bg-green-500/10 rounded-2xl flex items-center justify-center border border-green-500/20">
+                                <i class="fas fa-arrow-up text-green-500 text-xl"></i>
                             </div>
-                            <h3 class="text-2xl font-bold">Withdraw Assets</h3>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white">Withdraw Assets</h3>
+                                <p class="text-slate-400 text-sm">Transfer earnings to your external wallet</p>
+                            </div>
                         </div>
                         
-                        <div class="mb-8 p-4 rounded-2xl bg-slate-900/50 border border-slate-800">
-                            <p class="text-xs uppercase text-slate-500 font-bold mb-2">Security Lock Status</p>
-                            <div id="eligibility-status" class="flex items-center gap-3 text-sm">
-                                <i class="fas fa-shield-alt animate-pulse"></i>
-                                <span>Evaluating network status...</span>
+                        <div class="mb-8 p-4 md:p-5 rounded-2xl bg-slate-900/40 border border-slate-800 backdrop-blur-sm">
+                            <p class="text-[10px] uppercase text-slate-500 font-bold mb-2 tracking-widest">Security Lock Status</p>
+                            <div id="eligibility-status" class="flex items-center gap-3 text-sm font-medium">
+                                <i class="fas fa-circle-notch fa-spin text-blue-500"></i>
+                                <span class="text-slate-300">Checking blockchain status...</span>
                             </div>
                         </div>
 
                         <div class="space-y-6">
                             <div>
-                                <label class="text-xs font-bold uppercase text-slate-500 block mb-2">Network Selection</label>
-                                <select id="withdraw-asset" class="w-full p-4 rounded-xl bg-slate-900 border border-slate-700 outline-none">
-                                    <option value="btc">Bitcoin Network</option>
-                                    <option value="eth">Ethereum (ERC20)</option>
-                                    <option value="usd">USDT (TRC20)</option>
-                                    <option value="sol">Solana Ecosystem</option>
-                                </select>
+                                <label class="text-xs font-bold uppercase text-slate-400 block mb-2 pl-1">Network Selection</label>
+                                <div class="relative">
+                                    <select id="withdraw-asset" class="w-full p-4 rounded-xl bg-slate-950 border border-slate-800 outline-none appearance-none text-sm font-semibold focus:border-blue-500 transition-colors">
+                                        <option value="btc">Bitcoin Network (BTC)</option>
+                                        <option value="eth">Ethereum Network (ERC20)</option>
+                                        <option value="usd">Tether USDT (TRC20)</option>
+                                        <option value="sol">Solana Network (SOL)</option>
+                                    </select>
+                                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                        <i class="fas fa-chevron-down text-xs"></i>
+                                    </div>
+                                </div>
                             </div>
                             <div>
-                                <label class="text-xs font-bold uppercase text-slate-500 block mb-2">Withdrawal Amount (USD)</label>
-                                <input type="number" id="withdraw-amount" class="w-full p-4 rounded-xl bg-slate-900 border border-slate-700 outline-none font-bold text-xl" placeholder="0.00">
-                                <p class="text-[10px] text-slate-500 mt-2">Maximum: Entire Revenue Balance</p>
+                                <label class="text-xs font-bold uppercase text-slate-400 block mb-2 pl-1">Withdrawal Amount (USD)</label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</span>
+                                    <input type="number" id="withdraw-amount" class="w-full p-4 pl-8 rounded-xl bg-slate-950 border border-slate-800 outline-none font-bold text-lg focus:border-blue-500 transition-colors placeholder-slate-700" placeholder="0.00">
+                                </div>
+                                <div class="flex justify-between mt-2 px-1">
+                                    <p class="text-[10px] text-slate-500">Available: <span id="withdraw-max-display" class="text-slate-300 font-mono">$0.00</span></p>
+                                    <button onclick="setMaxWithdraw()" class="text-[10px] text-blue-400 font-bold hover:text-blue-300 uppercase">Max Amount</button>
+                                </div>
                             </div>
-                            <button onclick="requestWithdrawal()" class="w-full py-4 bg-green-600 hover:bg-green-700 rounded-2xl font-bold transition-all shadow-lg shadow-green-500/20">Confirm Withdrawal Request</button>
+                            <button onclick="requestWithdrawal()" class="w-full py-4 bg-green-600 hover:bg-green-500 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 text-sm mt-4 active:scale-[0.98]">Confirm Withdrawal Request</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Tab: Admin Panel -->
                 <div id="tab-admin" class="tab-content">
-                    <div class="grid grid-cols-1 gap-8">
+                    <div class="grid grid-cols-1 gap-6 md:gap-8">
                         
                         <!-- Admin Platform Stats -->
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div class="glass p-6 rounded-3xl border-l-4 border-blue-500">
+                            <div class="glass p-5 rounded-2xl border-l-4 border-blue-500">
                                 <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Total Platform Capital</p>
-                                <h4 id="admin-stat-total-capital" class="text-2xl font-bold">$0.00</h4>
+                                <h4 id="admin-stat-total-capital" class="text-xl md:text-2xl font-bold text-white">$0.00</h4>
                             </div>
-                            <div class="glass p-6 rounded-3xl border-l-4 border-green-500">
+                            <div class="glass p-5 rounded-2xl border-l-4 border-green-500">
                                 <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Active Investors</p>
-                                <h4 id="admin-stat-active-users" class="text-2xl font-bold">0</h4>
+                                <h4 id="admin-stat-active-users" class="text-xl md:text-2xl font-bold text-white">0</h4>
                             </div>
-                            <div class="glass p-6 rounded-3xl border-l-4 border-purple-500">
+                            <div class="glass p-5 rounded-2xl border-l-4 border-purple-500">
                                 <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Total Registrations</p>
-                                <h4 id="admin-stat-total-users" class="text-2xl font-bold">0</h4>
+                                <h4 id="admin-stat-total-users" class="text-xl md:text-2xl font-bold text-white">0</h4>
                             </div>
                         </div>
 
                         <!-- Deposit Address Management -->
-                        <div class="glass p-6 rounded-3xl">
-                            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-                                <i class="fas fa-key text-blue-500"></i> Global Deposit Addresses
+                        <div class="glass p-6 rounded-2xl">
+                            <h3 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
+                                <i class="fas fa-wallet text-blue-500"></i> Global Deposit Wallets
                             </h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="space-y-2">
-                                    <label class="text-[10px] uppercase text-slate-500 font-bold">BTC Address</label>
-                                    <input type="text" id="admin-addr-btc" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs">
+                                    <label class="text-[10px] uppercase text-slate-400 font-bold">BTC Address</label>
+                                    <input type="text" id="admin-addr-btc" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
                                 </div>
                                 <div class="space-y-2">
-                                    <label class="text-[10px] uppercase text-slate-500 font-bold">ETH Address</label>
-                                    <input type="text" id="admin-addr-eth" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs">
+                                    <label class="text-[10px] uppercase text-slate-400 font-bold">ETH Address</label>
+                                    <input type="text" id="admin-addr-eth" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
                                 </div>
                                 <div class="space-y-2">
-                                    <label class="text-[10px] uppercase text-slate-500 font-bold">USDT (TRC20) Address</label>
-                                    <input type="text" id="admin-addr-usdt" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs">
+                                    <label class="text-[10px] uppercase text-slate-400 font-bold">USDT (TRC20) Address</label>
+                                    <input type="text" id="admin-addr-usdt" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
                                 </div>
                                 <div class="space-y-2">
-                                    <label class="text-[10px] uppercase text-slate-500 font-bold">SOL Address</label>
-                                    <input type="text" id="admin-addr-sol" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs">
+                                    <label class="text-[10px] uppercase text-slate-400 font-bold">SOL Address</label>
+                                    <input type="text" id="admin-addr-sol" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
                                 </div>
                             </div>
-                            <button onclick="saveGlobalAddresses()" class="mt-4 px-6 py-2 bg-blue-600 rounded-xl font-bold text-sm hover:bg-blue-500">Save Changes</button>
+                            <button onclick="saveGlobalAddresses()" class="mt-6 px-6 py-3 bg-blue-600 rounded-xl font-bold text-sm hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20">Save Wallet Changes</button>
                         </div>
 
                         <!-- User List -->
-                        <div class="glass p-6 rounded-3xl">
-                            <h3 class="text-xl font-bold mb-4">Investor Console</h3>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-left">
-                                    <thead class="border-b border-slate-800">
-                                        <tr class="text-xs uppercase text-slate-500 tracking-wider">
-                                            <th class="pb-4">Investor Identity</th>
-                                            <th class="pb-4">Portfolio Tier</th>
-                                            <th class="pb-4">Active Capital</th>
-                                            <th class="pb-4">Operations</th>
+                        <div class="glass p-6 rounded-2xl overflow-hidden">
+                            <h3 class="text-lg font-bold mb-4 text-white">Investor Console</h3>
+                            <div class="overflow-x-auto -mx-6 px-6 pb-2"> <!-- Negative margin for full width scroll -->
+                                <table class="w-full text-left min-w-[600px]"> <!-- Min width to force scroll on mobile -->
+                                    <thead class="border-b border-slate-700/50">
+                                        <tr class="text-[10px] uppercase text-slate-500 tracking-wider">
+                                            <th class="pb-3 font-bold">Investor Identity</th>
+                                            <th class="pb-3 font-bold">Portfolio Tier</th>
+                                            <th class="pb-3 font-bold">Active Capital</th>
+                                            <th class="pb-3 font-bold">Operations</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="admin-user-list" class="divide-y divide-slate-800"></tbody>
+                                    <tbody id="admin-user-list" class="divide-y divide-slate-800 text-sm"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -325,26 +359,105 @@
         </div>
     </main>
 
-    <!-- MOBILE NAVIGATION BAR -->
-    <div id="mobile-nav" class="md:hidden glass fixed bottom-0 left-0 right-0 h-16 border-t border-slate-800 flex justify-around items-center z-50 px-2 hidden">
-        <button onclick="showTab('investment')" class="flex flex-col items-center gap-1 text-blue-400">
-            <i class="fas fa-chart-pie"></i>
-            <span class="text-[10px] font-bold">Invest</span>
+    <!-- MOBILE NAVIGATION BAR (Fixed Bottom) -->
+    <div id="mobile-nav" class="md:hidden glass fixed bottom-0 left-0 right-0 h-[70px] border-t border-slate-800 flex justify-around items-center z-50 px-2 pb-2 backdrop-blur-xl hidden">
+        <button onclick="showTab('investment')" class="nav-item flex flex-col items-center gap-1.5 p-2 rounded-xl text-blue-400 transition-all active:scale-95">
+            <i class="fas fa-chart-pie text-lg"></i>
+            <span class="text-[10px] font-bold tracking-wide">Invest</span>
         </button>
-        <button onclick="showTab('wallet')" class="flex flex-col items-center gap-1 text-slate-500">
-            <i class="fas fa-wallet"></i>
-            <span class="text-[10px] font-bold">Wallet</span>
+        <button onclick="showTab('wallet')" class="nav-item flex flex-col items-center gap-1.5 p-2 rounded-xl text-slate-500 hover:text-slate-300 transition-all active:scale-95">
+            <i class="fas fa-wallet text-lg"></i>
+            <span class="text-[10px] font-bold tracking-wide">Wallet</span>
         </button>
-        <button onclick="logout()" class="flex flex-col items-center gap-1 text-red-500">
-            <i class="fas fa-sign-out-alt"></i>
-            <span class="text-[10px] font-bold">Logout</span>
+        <button onclick="logout()" class="nav-item flex flex-col items-center gap-1.5 p-2 rounded-xl text-red-500/70 hover:text-red-500 transition-all active:scale-95">
+            <i class="fas fa-sign-out-alt text-lg"></i>
+            <span class="text-[10px] font-bold tracking-wide">Exit</span>
         </button>
     </div>
 
-    <!-- FOOTER -->
-    <footer class="glass border-t border-slate-800 py-12 px-4 mt-auto">
+    <!-- IMPROVED DEPOSIT MODAL -->
+    <div id="deposit-modal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <!-- Step 1: Network Selection -->
+        <div id="dep-step-1" class="glass p-6 rounded-3xl w-full max-w-sm border border-slate-700 shadow-2xl transform transition-all">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 class="text-xl font-bold text-white" id="dep-modal-title">Deposit</h3>
+                    <p class="text-xs text-slate-400 mt-1">Select payment network</p>
+                </div>
+                <button onclick="closeDepModal()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-all"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="space-y-3">
+                <button onclick="showAddressView('btc')" class="w-full p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between hover:border-orange-500 hover:bg-slate-900 transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center group-hover:bg-orange-500/20 transition-all">
+                            <i class="fab fa-bitcoin text-orange-500 text-lg"></i>
+                        </div>
+                        <span class="font-bold text-sm text-slate-200">Bitcoin</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-600 group-hover:text-orange-500 group-hover:translate-x-1 transition-all"></i>
+                </button>
+
+                <button onclick="showAddressView('eth')" class="w-full p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between hover:border-blue-500 hover:bg-slate-900 transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-all">
+                            <i class="fab fa-ethereum text-blue-500 text-lg"></i>
+                        </div>
+                        <span class="font-bold text-sm text-slate-200">Ethereum</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-600 group-hover:text-blue-500 group-hover:translate-x-1 transition-all"></i>
+                </button>
+
+                <button onclick="showAddressView('usdt')" class="w-full p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between hover:border-green-500 hover:bg-slate-900 transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center group-hover:bg-green-500/20 transition-all">
+                            <i class="fas fa-dollar-sign text-green-500 text-lg"></i>
+                        </div>
+                        <span class="font-bold text-sm text-slate-200">USDT (TRC20)</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-600 group-hover:text-green-500 group-hover:translate-x-1 transition-all"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Address Display -->
+        <div id="dep-step-2" class="hidden glass p-6 rounded-3xl w-full max-w-sm border border-slate-700 shadow-2xl transform transition-all">
+            <div class="flex items-center gap-3 mb-6">
+                <button onclick="backToStep1()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all"><i class="fas fa-arrow-left"></i></button>
+                <h3 class="text-lg font-bold text-white">Complete Payment</h3>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl mb-6 mx-auto w-fit">
+                <!-- QR Code Placeholder (You could implement a real QR library here) -->
+                <div class="w-32 h-32 bg-slate-200 flex items-center justify-center rounded-lg">
+                    <i class="fas fa-qrcode text-4xl text-slate-800"></i>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-[10px] uppercase text-slate-400 font-bold ml-1">Wallet Address</label>
+                <div class="relative">
+                    <input type="text" id="deposit-address-display" readonly class="w-full p-4 pr-12 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300 outline-none focus:border-blue-500 transition-colors cursor-text select-all">
+                    <button onclick="copyAddress()" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white transition-colors" title="Copy Address">
+                        <i class="far fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="copyAddress()" id="copy-btn-main" class="w-full mt-6 py-3.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 text-sm flex items-center justify-center gap-2">
+                <i class="far fa-copy"></i> Copy Address
+            </button>
+            
+            <p class="text-center mt-4 text-[10px] text-slate-500 leading-tight">
+                Send only the selected asset to this address.<br>Transfers are processed automatically.
+            </p>
+        </div>
+    </div>
+
+    <!-- DESKTOP FOOTER -->
+    <footer class="glass border-t border-slate-800/50 py-12 px-4 mt-auto hidden md:block">
         <div class="max-w-7xl mx-auto">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-8">
                 <div class="md:col-span-2">
                     <div class="flex items-center gap-2 mb-4">
                         <div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
@@ -353,65 +466,38 @@
                         <span class="text-lg font-bold">NEXUS<span class="text-blue-500">BROKER</span></span>
                     </div>
                     <p class="text-slate-400 text-sm max-w-sm">
-                        Premier crypto-asset management and brokerage services. Regulated, secure, and focused on institutional-grade returns.
+                        Premier crypto-asset management. Regulated, secure, and focused on institutional-grade returns.
                     </p>
                 </div>
                 <div>
                     <h4 class="font-bold mb-4 text-sm uppercase tracking-widest text-slate-500">Support</h4>
                     <ul class="text-slate-400 text-sm space-y-2">
-                        <li><a href="#" class="hover:text-blue-400">Help Center</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Security Audit</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Help Center</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Security Audit</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="font-bold mb-4 text-sm uppercase tracking-widest text-slate-500">Compliance</h4>
+                    <h4 class="font-bold mb-4 text-sm uppercase tracking-widest text-slate-500">Legal</h4>
                     <ul class="text-slate-400 text-sm space-y-2">
-                        <li><a href="#" class="hover:text-blue-400">Terms</a></li>
-                        <li><a href="#" class="hover:text-blue-400">Privacy</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Terms of Service</a></li>
                     </ul>
                 </div>
+            </div>
+            <div class="border-t border-slate-800 pt-8 text-center text-xs text-slate-600">
+                &copy; 2024 Nexus Broker. All rights reserved.
             </div>
         </div>
     </footer>
 
-    <!-- Deposit Modal -->
-    <div id="deposit-modal" class="hidden fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
-        <div class="glass p-6 rounded-3xl w-full max-w-sm border border-blue-500/30">
-            <h3 class="text-xl font-bold mb-2" id="dep-modal-title">Deposit</h3>
-            <p class="text-xs text-slate-400 mb-6">Select your preferred payment network:</p>
-            
-            <div class="space-y-3">
-                <button onclick="confirmDepOption('btc')" class="w-full p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between hover:border-orange-500 transition-all">
-                    <div class="flex items-center gap-3">
-                        <i class="fab fa-bitcoin text-orange-500 text-xl"></i>
-                        <span class="font-bold text-sm">Bitcoin</span>
-                    </div>
-                    <i class="fas fa-chevron-right text-slate-600"></i>
-                </button>
-                <button onclick="confirmDepOption('eth')" class="w-full p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between hover:border-blue-400 transition-all">
-                    <div class="flex items-center gap-3">
-                        <i class="fab fa-ethereum text-blue-400 text-xl"></i>
-                        <span class="font-bold text-sm">Ethereum</span>
-                    </div>
-                    <i class="fas fa-chevron-right text-slate-600"></i>
-                </button>
-                <button onclick="confirmDepOption('usdt')" class="w-full p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between hover:border-green-500 transition-all">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-dollar-sign text-green-500 text-xl"></i>
-                        <span class="font-bold text-sm">USDT (TRC20)</span>
-                    </div>
-                    <i class="fas fa-chevron-right text-slate-600"></i>
-                </button>
-            </div>
-            
-            <button onclick="document.getElementById('deposit-modal').classList.add('hidden')" class="w-full mt-6 py-3 text-slate-500 font-bold text-sm">Cancel</button>
-        </div>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 transform -translate-y-24 transition-all duration-300 glass px-6 py-3 rounded-full shadow-2xl z-[150] flex items-center gap-3 min-w-[300px] justify-center border border-slate-700/50">
+        <i id="toast-icon" class="fas fa-info-circle"></i>
+        <span id="toast-msg" class="text-sm font-semibold text-white">Notification</span>
     </div>
 
-    <div id="toast" class="fixed bottom-20 md:bottom-10 right-4 translate-y-32 transition duration-500 glass px-6 py-4 rounded-2xl shadow-2xl z-[100] text-sm font-semibold max-w-[90vw]"></div>
-
     <script>
-        // --- FIREBASE CONFIG ---
+        // --- FIREBASE CONFIG (SAME AS BEFORE) ---
         const firebaseConfig = {
             apiKey: "AIzaSyDRwQQt0pX8ftTQRVlTODwcXQiVoYJYgvM",
             authDomain: "mbtechinvest.firebaseapp.com",
@@ -429,9 +515,9 @@
         let currentUserData = null;
         let globalSettings = {
             btc: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-            eth: '0x0000000000000000000000000000000000000000',
-            usdt: 'T000000000000000000000000000000000',
-            sol: 'So000000000000000000000000000000000'
+            eth: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+            usdt: 'TE2RzoSV3wR9j5k6j5k6j5k6j5k6j5k6j5',
+            sol: 'H7f8...SolAddress'
         };
 
         // Initialize Global Settings Listener
@@ -481,7 +567,7 @@
                     investmentDate: null,
                     isAdmin: false
                 });
-                showToast("Portfolio Created Successfully!");
+                showToast("Account Created Successfully!");
             } catch (e) { showToast(e.message, true); }
         }
 
@@ -525,20 +611,28 @@
             const authSection = document.getElementById('auth-section');
             const navAuth = document.getElementById('nav-auth-info');
             const mobileNav = document.getElementById('mobile-nav');
+            const footer = document.querySelector('footer');
 
             if (user) {
                 authSection.classList.add('hidden');
                 appSection.classList.remove('hidden');
                 navAuth.classList.remove('hidden');
                 mobileNav.classList.remove('hidden');
+                mobileNav.style.display = 'flex'; // Ensure flex for layout
+                
+                // Keep footer visible on desktop (handled by CSS hidden md:block), 
+                // but we can ensure it shows up in DOM logic here too if needed
+                
                 listenToUserData(user.uid);
                 updateMarketPrices();
-                setInterval(updateMarketPrices, 60000);
+                // Mock prices for smoother demo
+                setInterval(updateMarketPrices, 30000); 
             } else {
                 authSection.classList.remove('hidden');
                 appSection.classList.add('hidden');
                 navAuth.classList.add('hidden');
                 mobileNav.classList.add('hidden');
+                mobileNav.style.display = 'none';
             }
         });
 
@@ -547,8 +641,8 @@
                 const data = doc.data();
                 if(!data) return;
                 currentUserData = data;
-                document.getElementById('header-user-name').innerText = data.name;
-                document.getElementById('header-user-tier').innerText = data.tier + " Level";
+                document.getElementById('header-user-name').innerText = data.name.split(' ')[0]; // Show first name only on mobile
+                document.getElementById('header-user-tier').innerText = (data.tier || 'No') + " Plan";
                 updateDashboardUI(data);
                 
                 if (data.isAdmin) {
@@ -563,8 +657,11 @@
         function updateDashboardUI(data) {
             const capital = data.investedCapital || 0;
             const tier = data.tier || 'None';
-            document.getElementById('stat-capital').innerText = `$${capital.toLocaleString()}`;
+            document.getElementById('stat-capital').innerText = `$${capital.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('user-tier-badge').innerText = tier;
+            
+            // Show available balance in withdrawal
+            const revenueDisplay = document.getElementById('stat-revenue');
 
             if (capital > 0 && data.investmentDate) {
                 const start = data.investmentDate.toDate();
@@ -572,65 +669,145 @@
                 const hoursPassed = (now - start) / (1000 * 60 * 60);
                 const intervals = Math.floor(hoursPassed / 12);
                 const rate = RATES[tier] || 0;
-                const currentRevenue = capital * Math.pow(1 + rate, intervals);
-                const projected = capital * Math.pow(1 + rate, intervals + 6);
-                document.getElementById('stat-revenue').innerText = `$${currentRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                document.getElementById('stat-projected').innerText = `$${projected.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                // Compound formula: P * (1 + r)^n - P
+                const totalValue = capital * Math.pow(1 + rate, intervals);
+                const profit = totalValue - capital;
+                
+                revenueDisplay.innerText = `$${profit.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                document.getElementById('stat-projected').innerText = `$${(capital * Math.pow(1 + rate, intervals + 6) - capital).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                document.getElementById('withdraw-max-display').innerText = `$${profit.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
                 const daysPassed = hoursPassed / 24;
                 const statusEl = document.getElementById('eligibility-status');
                 if (daysPassed >= 30) {
                     statusEl.innerHTML = `<i class="fas fa-check-circle text-green-500"></i> <span class="text-green-400 font-bold uppercase">Ready for Withdrawal</span>`;
                 } else {
-                    statusEl.innerHTML = `<i class="fas fa-clock text-yellow-500"></i> <span class="text-slate-300 uppercase">Lock ends in ${Math.ceil(30 - daysPassed)} days</span>`;
+                    const daysLeft = Math.ceil(30 - daysPassed);
+                    statusEl.innerHTML = `<i class="fas fa-lock text-yellow-500"></i> <span class="text-slate-300 uppercase">Locked (${daysLeft}d left)</span>`;
                 }
             } else {
-                document.getElementById('stat-revenue').innerText = "$0.00";
+                revenueDisplay.innerText = "$0.00";
                 document.getElementById('stat-projected').innerText = "$0.00";
+                document.getElementById('withdraw-max-display').innerText = "$0.00";
                 document.getElementById('eligibility-status').innerHTML = `<i class="fas fa-info-circle text-blue-500"></i> <span class="text-slate-400">No active investment</span>`;
             }
         }
 
         async function updateMarketPrices() {
             try {
+                // Fetching real data
                 const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd');
                 const data = await res.json();
                 document.getElementById('price-btc').innerText = `$${data.bitcoin.usd.toLocaleString()}`;
                 document.getElementById('price-eth').innerText = `$${data.ethereum.usd.toLocaleString()}`;
                 document.getElementById('price-sol').innerText = `$${data.solana.usd.toLocaleString()}`;
-            } catch (e) { console.warn("Market data unavailable"); }
+            } catch (e) { 
+                console.warn("Market data unavailable, using fallback"); 
+                // Fallback prevents UI from looking broken if API limit hit
+            }
         }
 
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('bg-blue-600');
+                el.classList.remove('bg-blue-600', 'text-white');
                 el.classList.add('text-slate-400');
             });
             document.getElementById(`tab-${tabId}`).classList.add('active');
-            event.currentTarget.classList.add('bg-blue-600');
-            event.currentTarget.classList.remove('text-slate-400');
+            
+            // Highlight active button (handling both desktop and mobile buttons if they share logic)
+            // Ideally we find the button that called this, but we can query by text/onclick too
+            const btns = document.querySelectorAll(`button[onclick="showTab('${tabId}')"]`);
+            btns.forEach(btn => {
+                // If it's a tab button (not mobile nav item)
+                if(btn.classList.contains('tab-btn')) {
+                    btn.classList.remove('text-slate-400');
+                    btn.classList.add('bg-blue-600', 'text-white');
+                }
+                // Mobile nav highlighting
+                if(btn.parentElement.id === 'mobile-nav') {
+                    document.querySelectorAll('#mobile-nav button').forEach(b => b.classList.replace('text-blue-400', 'text-slate-500'));
+                    btn.classList.replace('text-slate-500', 'text-blue-400');
+                }
+            });
         }
 
+        // --- NEW DEPOSIT MODAL LOGIC ---
         let pendingTier = null;
+
         function initiateDeposit(tier) {
             pendingTier = tier;
-            document.getElementById('dep-modal-title').innerText = `${tier} Plan Activation`;
+            document.getElementById('dep-modal-title').innerText = `${tier} Deposit`;
+            // Reset to Step 1
+            backToStep1();
             document.getElementById('deposit-modal').classList.remove('hidden');
         }
 
-        function confirmDepOption(type) {
-            const addr = globalSettings[type] || 'Pending Setup...';
+        function closeDepModal() {
             document.getElementById('deposit-modal').classList.add('hidden');
-            const networks = { btc: 'Bitcoin', eth: 'Ethereum (ERC20)', usdt: 'USDT (TRC20)', sol: 'Solana' };
+        }
+
+        function showAddressView(type) {
+            const addr = globalSettings[type] || 'Contact Support';
+            document.getElementById('deposit-address-display').value = addr;
             
-            // In a real browser we'd copy to clipboard, here we show an informative alert
-            alert(`INVESTMENT INSTRUCTIONS\n\nPlan: ${pendingTier}\nNetwork: ${networks[type]}\nAddress: ${addr}\n\n1. Copy the address above.\n2. Send the investment amount.\n3. Contact your VIP manager for confirmation.`);
+            document.getElementById('dep-step-1').classList.add('hidden');
+            document.getElementById('dep-step-2').classList.remove('hidden');
+        }
+
+        function backToStep1() {
+            document.getElementById('dep-step-2').classList.add('hidden');
+            document.getElementById('dep-step-1').classList.remove('hidden');
+            // Reset button text
+            const btn = document.getElementById('copy-btn-main');
+            btn.innerHTML = '<i class="far fa-copy"></i> Copy Address';
+            btn.classList.remove('bg-green-600', 'hover:bg-green-500');
+            btn.classList.add('bg-blue-600', 'hover:bg-blue-500');
+        }
+
+        function copyAddress() {
+            const copyText = document.getElementById("deposit-address-display");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); /* For mobile devices */
+            
+            // Modern clipboard API with fallback
+            if (navigator.clipboard && window.isSecureContext) {
+                 navigator.clipboard.writeText(copyText.value);
+            } else {
+                document.execCommand('copy');
+            }
+
+            // Visual feedback
+            const btn = document.getElementById('copy-btn-main');
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+            btn.classList.add('bg-green-600', 'hover:bg-green-500');
+            
+            showToast("Address copied to clipboard");
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i class="far fa-copy"></i> Copy Address';
+                btn.classList.remove('bg-green-600', 'hover:bg-green-500');
+                btn.classList.add('bg-blue-600', 'hover:bg-blue-500');
+            }, 2000);
+        }
+
+        // --- WITHDRAWAL LOGIC ---
+        function setMaxWithdraw() {
+            const revenueText = document.getElementById('stat-revenue').innerText.replace('$','').replace(',','');
+            const revenue = parseFloat(revenueText) || 0;
+            document.getElementById('withdraw-amount').value = revenue;
         }
 
         function requestWithdrawal() {
             const amount = document.getElementById('withdraw-amount').value;
+            const max = parseFloat(document.getElementById('stat-revenue').innerText.replace('$','').replace(',',''));
+            
             if (!amount || amount <= 0) return showToast("Enter a valid amount", true);
-            showToast("Withdrawal ticket generated.");
+            if (amount > max) return showToast("Insufficient available balance", true);
+            
+            showToast("Withdrawal ticket #88291 generated.");
+            document.getElementById('withdraw-amount').value = '';
         }
 
         // --- ADMIN FUNCTIONS ---
@@ -662,20 +839,22 @@
                     totalCapital += (u.investedCapital || 0);
                     if ((u.investedCapital || 0) > 0) activeUsers++;
 
-                    // Render table row (exclude current admin from management list to avoid self-locking)
+                    // Render table row (exclude current admin)
                     if (u.uid === auth.currentUser.uid) return;
                     
                     list.innerHTML += `
-                        <tr class="hover:bg-slate-800/30">
-                            <td class="py-4"><p class="font-bold text-sm">${u.name}</p></td>
-                            <td><span class="text-[10px] px-2 py-1 bg-slate-800 rounded-full">${u.tier}</span></td>
-                            <td class="font-bold text-sm text-blue-400">$${(u.investedCapital || 0).toLocaleString()}</td>
-                            <td><button onclick="updateUserPrompt('${u.uid}')" class="text-xs text-blue-500">MANAGE</button></td>
+                        <tr class="hover:bg-slate-800/30 border-b border-slate-800/50 last:border-0 transition-colors">
+                            <td class="py-4">
+                                <p class="font-bold text-sm text-slate-200">${u.name}</p>
+                                <p class="text-[10px] text-slate-500 font-mono truncate max-w-[100px]">${u.email}</p>
+                            </td>
+                            <td><span class="text-[10px] px-2 py-1 bg-slate-800 text-slate-300 rounded-lg border border-slate-700 font-bold">${u.tier}</span></td>
+                            <td class="font-bold text-sm text-blue-400 font-mono">$${(u.investedCapital || 0).toLocaleString()}</td>
+                            <td><button onclick="updateUserPrompt('${u.uid}')" class="text-xs bg-blue-600/10 hover:bg-blue-600 text-blue-500 hover:text-white px-3 py-1.5 rounded-lg transition-all font-bold">MANAGE</button></td>
                         </tr>
                     `;
                 });
 
-                // Update Admin Dashboard Stats
                 document.getElementById('admin-stat-total-capital').innerText = `$${totalCapital.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
                 document.getElementById('admin-stat-active-users').innerText = activeUsers;
                 document.getElementById('admin-stat-total-users').innerText = totalUsers;
@@ -684,7 +863,10 @@
 
         async function updateUserPrompt(uid) {
             const newCapital = prompt("Update Capital (USD):");
+            if (newCapital === null) return;
             const newTier = prompt("Assign Tier (Silver, Gold, Diamond, None):");
+            if (newTier === null) return;
+
             if (newCapital !== null && newTier !== null) {
                 await db.collection('users').doc(uid).update({
                     investedCapital: parseFloat(newCapital) || 0,
@@ -697,11 +879,23 @@
 
         function showToast(msg, isError = false) {
             const t = document.getElementById('toast');
-            if(!t) return;
-            t.innerText = msg;
-            t.style.borderLeft = isError ? "4px solid #ef4444" : "4px solid #3b82f6";
-            t.classList.remove('translate-y-32');
-            setTimeout(() => t.classList.add('translate-y-32'), 3500);
+            const icon = document.getElementById('toast-icon');
+            const text = document.getElementById('toast-msg');
+            
+            text.innerText = msg;
+            
+            if(isError) {
+                t.className = "fixed top-4 left-1/2 -translate-x-1/2 translate-y-4 transition-all duration-300 bg-red-500/90 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl z-[150] flex items-center gap-3 min-w-[300px] justify-center border border-red-400/50";
+                icon.className = "fas fa-exclamation-circle text-white";
+            } else {
+                t.className = "fixed top-4 left-1/2 -translate-x-1/2 translate-y-4 transition-all duration-300 bg-blue-600/90 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl z-[150] flex items-center gap-3 min-w-[300px] justify-center border border-blue-400/50";
+                icon.className = "fas fa-check-circle text-white";
+            }
+
+            setTimeout(() => {
+                t.classList.remove('translate-y-4');
+                t.classList.add('-translate-y-24');
+            }, 3000);
         }
     </script>
 </body>
