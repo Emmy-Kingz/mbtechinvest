@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nexus Crypto Broker | Institutional Grade Trading</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Firebase App (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
@@ -27,13 +30,22 @@
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08); 
         }
-        
+
         .tab-content { display: none; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
         
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Social Proof Popup Animation */
+        .social-toast {
+            transform: translateX(-120%);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .social-toast.show {
+            transform: translateX(0);
         }
 
         /* Custom Scrollbar */
@@ -82,14 +94,14 @@
                         <input type="email" id="login-email" placeholder="Email Address" class="w-full p-3.5 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 focus:bg-slate-900 outline-none transition-colors text-sm">
                         <input type="password" id="login-pass" placeholder="Password" class="w-full p-3.5 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 focus:bg-slate-900 outline-none transition-colors text-sm">
                     </div>
-                    <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-500 mt-6 py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]">Login to Dashboard</button>
+                    <button id="btn-login" onclick="login()" class="w-full bg-blue-600 hover:bg-blue-500 mt-6 py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]">Login to Dashboard</button>
                     
                     <div class="relative my-6">
                         <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
                         <div class="relative flex justify-center text-xs uppercase"><span class="bg-[#0f172a] px-2 text-slate-500">Or continue with</span></div>
                     </div>
 
-                    <button onclick="googleSignIn()" class="w-full bg-white text-black py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition-all text-sm">
+                    <button id="btn-google" onclick="googleSignIn()" class="w-full bg-white text-black py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition-all text-sm">
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> Google Account
                     </button>
                     <p class="text-center mt-6 text-sm text-slate-400">New investor? <a href="#" onclick="toggleAuth(false)" class="text-blue-400 font-semibold hover:text-blue-300">Create Account</a></p>
@@ -97,6 +109,7 @@
 
                 <div id="signup-form" class="hidden">
                     <div class="space-y-3">
+                        <input type="text" id="hp-check" class="hidden absolute opacity-0 h-0 w-0" tabindex="-1" autocomplete="off">
                         <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-3.5 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 outline-none text-sm">
                         <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-3.5 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 outline-none text-sm">
                         <input type="password" id="reg-pass" placeholder="Password" class="w-full p-3.5 rounded-xl bg-slate-900/50 border border-slate-700 focus:border-blue-500 outline-none text-sm">
@@ -110,14 +123,14 @@
                             </div>
                         </div>
                     </div>
-                    <button onclick="signUp()" class="w-full bg-blue-600 hover:bg-blue-500 mt-4 py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]">Register Account</button>
+                    <button id="btn-signup" onclick="signUp()" class="w-full bg-blue-600 hover:bg-blue-500 mt-4 py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]">Register Account</button>
                     <p class="text-center mt-6 text-sm text-slate-400">Already a member? <a href="#" onclick="toggleAuth(true)" class="text-blue-400 font-semibold hover:text-blue-300">Login</a></p>
                 </div>
             </div>
         </div>
 
         <!-- Main App Dashboard -->
-        <div id="app-section" class="hidden pb-32 pt-6"> <!-- Increased bottom padding for mobile nav -->
+        <div id="app-section" class="hidden pb-32 pt-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
                 <!-- Market Ticker -->
@@ -252,9 +265,11 @@
                         
                         <div class="mb-8 p-4 md:p-5 rounded-2xl bg-slate-900/40 border border-slate-800 backdrop-blur-sm">
                             <p class="text-[10px] uppercase text-slate-500 font-bold mb-2 tracking-widest">Security Lock Status</p>
-                            <div id="eligibility-status" class="flex items-center gap-3 text-sm font-medium">
-                                <i class="fas fa-circle-notch fa-spin text-blue-500"></i>
-                                <span class="text-slate-300">Checking blockchain status...</span>
+                            <div id="eligibility-status" class="flex flex-col gap-2 text-sm font-medium">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-circle-notch fa-spin text-blue-500"></i>
+                                    <span class="text-slate-300">Checking blockchain status...</span>
+                                </div>
                             </div>
                         </div>
 
@@ -292,8 +307,7 @@
                 <!-- Tab: Admin Panel -->
                 <div id="tab-admin" class="tab-content">
                     <div class="grid grid-cols-1 gap-6 md:gap-8">
-                        
-                        <!-- Admin Platform Stats -->
+                        <!-- Stats -->
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div class="glass p-5 rounded-2xl border-l-4 border-blue-500">
                                 <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Total Platform Capital</p>
@@ -309,43 +323,112 @@
                             </div>
                         </div>
 
-                        <!-- Deposit Address Management -->
+                        <!-- Wallets -->
                         <div class="glass p-6 rounded-2xl">
                             <h3 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
-                                <i class="fas fa-wallet text-blue-500"></i> Global Deposit Wallets
+                                <i class="fas fa-qrcode text-blue-500"></i> Payment Gateways & QR Codes
                             </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="space-y-2">
-                                    <label class="text-[10px] uppercase text-slate-400 font-bold">BTC Address</label>
-                                    <input type="text" id="admin-addr-btc" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- BTC -->
+                                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i class="fab fa-bitcoin text-orange-500"></i>
+                                        <span class="text-xs font-bold uppercase text-slate-300">Bitcoin (BTC)</span>
+                                    </div>
+                                    <input type="text" id="admin-addr-btc" placeholder="Wallet Address" class="w-full p-2.5 mb-3 bg-slate-950 border border-slate-800 rounded text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 bg-slate-800 rounded flex items-center justify-center overflow-hidden border border-slate-700">
+                                            <img id="preview-qr-btc" src="" alt="QR" class="w-full h-full object-cover hidden">
+                                            <i id="icon-qr-btc" class="fas fa-qrcode text-slate-600 text-lg"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold py-1.5 px-3 rounded border border-slate-700 block text-center transition-colors">
+                                                <i class="fas fa-upload mr-1"></i> Upload QR
+                                                <input type="file" class="hidden" accept="image/*" onchange="handleQRUpload(this, 'btc')">
+                                            </label>
+                                            <p id="status-qr-btc" class="text-[9px] text-slate-500 mt-1 text-center">No file chosen</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="space-y-2">
-                                    <label class="text-[10px] uppercase text-slate-400 font-bold">ETH Address</label>
-                                    <input type="text" id="admin-addr-eth" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
+                                <!-- ETH -->
+                                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i class="fab fa-ethereum text-blue-500"></i>
+                                        <span class="text-xs font-bold uppercase text-slate-300">Ethereum (ETH)</span>
+                                    </div>
+                                    <input type="text" id="admin-addr-eth" placeholder="Wallet Address" class="w-full p-2.5 mb-3 bg-slate-950 border border-slate-800 rounded text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 bg-slate-800 rounded flex items-center justify-center overflow-hidden border border-slate-700">
+                                            <img id="preview-qr-eth" src="" alt="QR" class="w-full h-full object-cover hidden">
+                                            <i id="icon-qr-eth" class="fas fa-qrcode text-slate-600 text-lg"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold py-1.5 px-3 rounded border border-slate-700 block text-center transition-colors">
+                                                <i class="fas fa-upload mr-1"></i> Upload QR
+                                                <input type="file" class="hidden" accept="image/*" onchange="handleQRUpload(this, 'eth')">
+                                            </label>
+                                            <p id="status-qr-eth" class="text-[9px] text-slate-500 mt-1 text-center">No file chosen</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="space-y-2">
-                                    <label class="text-[10px] uppercase text-slate-400 font-bold">USDT (TRC20) Address</label>
-                                    <input type="text" id="admin-addr-usdt" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
+                                <!-- USDT -->
+                                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i class="fas fa-dollar-sign text-green-500"></i>
+                                        <span class="text-xs font-bold uppercase text-slate-300">Tether (USDT TRC20)</span>
+                                    </div>
+                                    <input type="text" id="admin-addr-usdt" placeholder="Wallet Address" class="w-full p-2.5 mb-3 bg-slate-950 border border-slate-800 rounded text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 bg-slate-800 rounded flex items-center justify-center overflow-hidden border border-slate-700">
+                                            <img id="preview-qr-usdt" src="" alt="QR" class="w-full h-full object-cover hidden">
+                                            <i id="icon-qr-usdt" class="fas fa-qrcode text-slate-600 text-lg"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold py-1.5 px-3 rounded border border-slate-700 block text-center transition-colors">
+                                                <i class="fas fa-upload mr-1"></i> Upload QR
+                                                <input type="file" class="hidden" accept="image/*" onchange="handleQRUpload(this, 'usdt')">
+                                            </label>
+                                            <p id="status-qr-usdt" class="text-[9px] text-slate-500 mt-1 text-center">No file chosen</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="space-y-2">
-                                    <label class="text-[10px] uppercase text-slate-400 font-bold">SOL Address</label>
-                                    <input type="text" id="admin-addr-sol" class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
+                                <!-- SOL -->
+                                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i class="fas fa-coins text-purple-500"></i>
+                                        <span class="text-xs font-bold uppercase text-slate-300">Solana (SOL)</span>
+                                    </div>
+                                    <input type="text" id="admin-addr-sol" placeholder="Wallet Address" class="w-full p-2.5 mb-3 bg-slate-950 border border-slate-800 rounded text-xs font-mono text-slate-300 focus:border-blue-500 outline-none">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 bg-slate-800 rounded flex items-center justify-center overflow-hidden border border-slate-700">
+                                            <img id="preview-qr-sol" src="" alt="QR" class="w-full h-full object-cover hidden">
+                                            <i id="icon-qr-sol" class="fas fa-qrcode text-slate-600 text-lg"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold py-1.5 px-3 rounded border border-slate-700 block text-center transition-colors">
+                                                <i class="fas fa-upload mr-1"></i> Upload QR
+                                                <input type="file" class="hidden" accept="image/*" onchange="handleQRUpload(this, 'sol')">
+                                            </label>
+                                            <p id="status-qr-sol" class="text-[9px] text-slate-500 mt-1 text-center">No file chosen</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <button onclick="saveGlobalAddresses()" class="mt-6 px-6 py-3 bg-blue-600 rounded-xl font-bold text-sm hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20">Save Wallet Changes</button>
+                            <button onclick="saveGlobalData()" class="mt-6 w-full py-3 bg-blue-600 rounded-xl font-bold text-sm hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20">Save All Wallets & QRs</button>
                         </div>
 
                         <!-- User List -->
                         <div class="glass p-6 rounded-2xl overflow-hidden">
-                            <h3 class="text-lg font-bold mb-4 text-white">Investor Console</h3>
-                            <div class="overflow-x-auto -mx-6 px-6 pb-2"> <!-- Negative margin for full width scroll -->
-                                <table class="w-full text-left min-w-[600px]"> <!-- Min width to force scroll on mobile -->
+                            <h3 class="text-lg font-bold mb-4 text-white">Investor Management</h3>
+                            <div class="overflow-x-auto -mx-6 px-6 pb-2">
+                                <table class="w-full text-left min-w-[700px]">
                                     <thead class="border-b border-slate-700/50">
                                         <tr class="text-[10px] uppercase text-slate-500 tracking-wider">
-                                            <th class="pb-3 font-bold">Investor Identity</th>
-                                            <th class="pb-3 font-bold">Portfolio Tier</th>
-                                            <th class="pb-3 font-bold">Active Capital</th>
-                                            <th class="pb-3 font-bold">Operations</th>
+                                            <th class="pb-3 font-bold">Investor</th>
+                                            <th class="pb-3 font-bold">Plan</th>
+                                            <th class="pb-3 font-bold">Capital</th>
+                                            <th class="pb-3 font-bold">Status</th>
+                                            <th class="pb-3 font-bold text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="admin-user-list" class="divide-y divide-slate-800 text-sm"></tbody>
@@ -359,7 +442,7 @@
         </div>
     </main>
 
-    <!-- MOBILE NAVIGATION BAR (Fixed Bottom) -->
+    <!-- MOBILE NAVIGATION BAR -->
     <div id="mobile-nav" class="md:hidden glass fixed bottom-0 left-0 right-0 h-[70px] border-t border-slate-800 flex justify-around items-center z-50 px-2 pb-2 backdrop-blur-xl hidden">
         <button onclick="showTab('investment')" class="nav-item flex flex-col items-center gap-1.5 p-2 rounded-xl text-blue-400 transition-all active:scale-95">
             <i class="fas fa-chart-pie text-lg"></i>
@@ -377,7 +460,6 @@
 
     <!-- IMPROVED DEPOSIT MODAL -->
     <div id="deposit-modal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <!-- Step 1: Network Selection -->
         <div id="dep-step-1" class="glass p-6 rounded-3xl w-full max-w-sm border border-slate-700 shadow-2xl transform transition-all">
             <div class="flex justify-between items-start mb-6">
                 <div>
@@ -397,7 +479,6 @@
                     </div>
                     <i class="fas fa-chevron-right text-slate-600 group-hover:text-orange-500 group-hover:translate-x-1 transition-all"></i>
                 </button>
-
                 <button onclick="showAddressView('eth')" class="w-full p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between hover:border-blue-500 hover:bg-slate-900 transition-all group">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-all">
@@ -407,7 +488,6 @@
                     </div>
                     <i class="fas fa-chevron-right text-slate-600 group-hover:text-blue-500 group-hover:translate-x-1 transition-all"></i>
                 </button>
-
                 <button onclick="showAddressView('usdt')" class="w-full p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between hover:border-green-500 hover:bg-slate-900 transition-all group">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center group-hover:bg-green-500/20 transition-all">
@@ -417,23 +497,29 @@
                     </div>
                     <i class="fas fa-chevron-right text-slate-600 group-hover:text-green-500 group-hover:translate-x-1 transition-all"></i>
                 </button>
+                <button onclick="showAddressView('sol')" class="w-full p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between hover:border-purple-500 hover:bg-slate-900 transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-all">
+                            <i class="fas fa-coins text-purple-500 text-lg"></i>
+                        </div>
+                        <span class="font-bold text-sm text-slate-200">Solana</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-600 group-hover:text-purple-500 group-hover:translate-x-1 transition-all"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Step 2: Address Display -->
         <div id="dep-step-2" class="hidden glass p-6 rounded-3xl w-full max-w-sm border border-slate-700 shadow-2xl transform transition-all">
             <div class="flex items-center gap-3 mb-6">
                 <button onclick="backToStep1()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all"><i class="fas fa-arrow-left"></i></button>
                 <h3 class="text-lg font-bold text-white">Complete Payment</h3>
             </div>
-
-            <div class="bg-white p-4 rounded-xl mb-6 mx-auto w-fit">
-                <!-- QR Code Placeholder (You could implement a real QR library here) -->
-                <div class="w-32 h-32 bg-slate-200 flex items-center justify-center rounded-lg">
-                    <i class="fas fa-qrcode text-4xl text-slate-800"></i>
+            <div class="bg-white p-3 rounded-xl mb-6 mx-auto w-fit shadow-xl">
+                <div id="deposit-qr-container" class="w-40 h-40 bg-slate-100 flex items-center justify-center rounded-lg overflow-hidden">
+                    <i id="deposit-qr-icon" class="fas fa-qrcode text-5xl text-slate-800"></i>
+                    <img id="deposit-qr-img" src="" class="w-full h-full object-contain hidden" alt="Scan to pay">
                 </div>
             </div>
-
             <div class="space-y-2">
                 <label class="text-[10px] uppercase text-slate-400 font-bold ml-1">Wallet Address</label>
                 <div class="relative">
@@ -443,52 +529,17 @@
                     </button>
                 </div>
             </div>
-
             <button onclick="copyAddress()" id="copy-btn-main" class="w-full mt-6 py-3.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 text-sm flex items-center justify-center gap-2">
                 <i class="far fa-copy"></i> Copy Address
             </button>
-            
             <p class="text-center mt-4 text-[10px] text-slate-500 leading-tight">
                 Send only the selected asset to this address.<br>Transfers are processed automatically.
             </p>
         </div>
     </div>
 
-    <!-- DESKTOP FOOTER -->
-    <footer class="glass border-t border-slate-800/50 py-12 px-4 mt-auto hidden md:block">
-        <div class="max-w-7xl mx-auto">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-8">
-                <div class="md:col-span-2">
-                    <div class="flex items-center gap-2 mb-4">
-                        <div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
-                            <i class="fas fa-chart-line text-white text-[10px]"></i>
-                        </div>
-                        <span class="text-lg font-bold">NEXUS<span class="text-blue-500">BROKER</span></span>
-                    </div>
-                    <p class="text-slate-400 text-sm max-w-sm">
-                        Premier crypto-asset management. Regulated, secure, and focused on institutional-grade returns.
-                    </p>
-                </div>
-                <div>
-                    <h4 class="font-bold mb-4 text-sm uppercase tracking-widest text-slate-500">Support</h4>
-                    <ul class="text-slate-400 text-sm space-y-2">
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Help Center</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Security Audit</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="font-bold mb-4 text-sm uppercase tracking-widest text-slate-500">Legal</h4>
-                    <ul class="text-slate-400 text-sm space-y-2">
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Terms of Service</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="border-t border-slate-800 pt-8 text-center text-xs text-slate-600">
-                &copy; 2024 Nexus Broker. All rights reserved.
-            </div>
-        </div>
-    </footer>
+    <!-- SOCIAL PROOF POPUP CONTAINER -->
+    <div id="social-proof-container" class="fixed bottom-20 left-4 z-40 flex flex-col gap-2 pointer-events-none md:bottom-4"></div>
 
     <!-- Toast Notification -->
     <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 transform -translate-y-24 transition-all duration-300 glass px-6 py-3 rounded-full shadow-2xl z-[150] flex items-center gap-3 min-w-[300px] justify-center border border-slate-700/50">
@@ -497,7 +548,7 @@
     </div>
 
     <script>
-        // --- FIREBASE CONFIG (SAME AS BEFORE) ---
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyDRwQQt0pX8ftTQRVlTODwcXQiVoYJYgvM",
             authDomain: "mbtechinvest.firebaseapp.com",
@@ -511,60 +562,155 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const storage = firebase.storage();
 
         let currentUserData = null;
-        let globalSettings = {
-            btc: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-            eth: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
-            usdt: 'TE2RzoSV3wR9j5k6j5k6j5k6j5k6j5k6j5',
-            sol: 'H7f8...SolAddress'
-        };
+        let globalSettings = {};
+        
+        // Security & Rate Limiting
+        let lastAuthAttempt = 0;
+        const AUTH_COOLDOWN = 2000;
 
-        // Initialize Global Settings Listener
+        // --- SOCIAL PROOF NOTIFICATIONS ---
+        const fakeNames = ["Alexander M.", "Sarah K.", "David L.", "Michael B.", "Jessica R.", "Daniel T.", "Emma W.", "James H.", "Olivia P.", "William S."];
+        const fakeActions = ["deposited", "withdrew"];
+        const fakeCurrencies = ["BTC", "ETH", "USDT", "SOL"];
+        
+        function startSocialProof() {
+            // Initial delay then random intervals
+            setTimeout(triggerSocialProof, 3000);
+        }
+
+        function triggerSocialProof() {
+            // Generate random data
+            const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
+            const action = fakeActions[Math.floor(Math.random() * fakeActions.length)];
+            const currency = fakeCurrencies[Math.floor(Math.random() * fakeCurrencies.length)];
+            
+            // Generate realistic amounts based on action
+            let amount;
+            if (action === "deposited") {
+                amount = Math.floor(Math.random() * (5000 - 500) + 500); // 500 to 5000
+            } else {
+                amount = Math.floor(Math.random() * (2000 - 100) + 100); // 100 to 2000
+            }
+
+            // Color coding
+            const colorClass = action === "deposited" ? "text-green-400" : "text-blue-400";
+            const iconClass = action === "deposited" ? "fa-arrow-down text-green-500" : "fa-arrow-up text-blue-500";
+
+            const container = document.getElementById('social-proof-container');
+            const toast = document.createElement('div');
+            
+            toast.className = "social-toast glass p-3 rounded-xl border border-slate-700/50 flex items-center gap-3 w-fit shadow-xl backdrop-blur-md";
+            toast.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
+                    <i class="fas ${iconClass} text-xs"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Just now</p>
+                    <p class="text-xs text-white font-medium">
+                        <span class="font-bold">${name}</span> ${action} 
+                        <span class="${colorClass} font-bold">$${amount.toLocaleString()}</span> in ${currency}
+                    </p>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Remove after 4 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+
+            // Schedule next one (randomly between 8 and 20 seconds)
+            const nextInterval = Math.floor(Math.random() * (20000 - 8000) + 8000);
+            setTimeout(triggerSocialProof, nextInterval);
+        }
+
+        // --- GLOBAL SETTINGS LISTENER ---
         db.collection('settings').doc('wallets').onSnapshot(doc => {
             if (doc.exists) {
                 globalSettings = doc.data();
-                // Update admin inputs if visible
                 if (currentUserData?.isAdmin) {
-                    const btcInput = document.getElementById('admin-addr-btc');
-                    if(btcInput) {
-                        btcInput.value = globalSettings.btc || '';
-                        document.getElementById('admin-addr-eth').value = globalSettings.eth || '';
-                        document.getElementById('admin-addr-usdt').value = globalSettings.usdt || '';
-                        document.getElementById('admin-addr-sol').value = globalSettings.sol || '';
-                    }
+                    updateAdminWalletUI();
                 }
             }
         });
 
-        // --- AUTH LOGIC ---
+        function updateAdminWalletUI() {
+            const types = ['btc', 'eth', 'usdt', 'sol'];
+            types.forEach(type => {
+                const addrInput = document.getElementById(`admin-addr-${type}`);
+                if(addrInput) addrInput.value = globalSettings[type] || '';
+                
+                const qrUrl = globalSettings[`${type}_qr`];
+                const img = document.getElementById(`preview-qr-${type}`);
+                const icon = document.getElementById(`icon-qr-${type}`);
+                
+                if (qrUrl) {
+                    img.src = qrUrl;
+                    img.classList.remove('hidden');
+                    icon.classList.add('hidden');
+                } else {
+                    img.classList.add('hidden');
+                    icon.classList.remove('hidden');
+                }
+            });
+        }
+
+        // --- AUTH & SECURITY ---
         function toggleAuth(isLogin) {
             document.getElementById('login-form').classList.toggle('hidden', !isLogin);
             document.getElementById('signup-form').classList.toggle('hidden', isLogin);
             document.querySelector('#auth-section h1').innerText = isLogin ? "Welcome Back" : "Create Account";
         }
 
+        function checkRateLimit() {
+            const now = Date.now();
+            if (now - lastAuthAttempt < AUTH_COOLDOWN) {
+                showToast("Please wait a moment before trying again", true);
+                return false;
+            }
+            lastAuthAttempt = now;
+            return true;
+        }
+
         async function signUp() {
+            if(!checkRateLimit()) return;
+            const honeypot = document.getElementById('hp-check').value;
+            if (honeypot) return;
+
             const email = document.getElementById('reg-email').value;
             const pass = document.getElementById('reg-pass').value;
             const name = document.getElementById('reg-name').value;
-            const btc = document.getElementById('reg-btc').value;
-            const usd = document.getElementById('reg-usd').value;
-            const sol = document.getElementById('reg-sol').value;
-
+            
             if(!email || !pass || !name) return showToast("Please fill all required fields", true);
+            if(pass.length < 6) return showToast("Password must be at least 6 characters", true);
 
             try {
                 const cred = await auth.createUserWithEmailAndPassword(email, pass);
                 await db.collection('users').doc(cred.user.uid).set({
                     uid: cred.user.uid,
-                    name: name,
+                    name: name.replace(/[<>]/g, ''),
                     email: email,
-                    withdrawalAddresses: { btc, usd, sol },
+                    withdrawalAddresses: {
+                        btc: document.getElementById('reg-btc').value,
+                        usd: document.getElementById('reg-usd').value,
+                        sol: document.getElementById('reg-sol').value
+                    },
                     investedCapital: 0,
                     tier: 'None',
+                    status: 'active',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     investmentDate: null,
+                    lastWithdrawalDate: null, // Track withdrawals
                     isAdmin: false
                 });
                 showToast("Account Created Successfully!");
@@ -572,6 +718,7 @@
         }
 
         async function login() {
+            if(!checkRateLimit()) return;
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
             try { 
@@ -581,6 +728,7 @@
         }
 
         async function googleSignIn() {
+            if(!checkRateLimit()) return;
             const provider = new firebase.auth.GoogleAuthProvider();
             try {
                 const result = await auth.signInWithPopup(provider);
@@ -595,8 +743,10 @@
                         withdrawalAddresses: { btc: '', usd: '', sol: '' },
                         investedCapital: 0,
                         tier: 'None',
+                        status: 'active',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         investmentDate: null,
+                        lastWithdrawalDate: null,
                         isAdmin: false
                     });
                 }
@@ -611,22 +761,38 @@
             const authSection = document.getElementById('auth-section');
             const navAuth = document.getElementById('nav-auth-info');
             const mobileNav = document.getElementById('mobile-nav');
-            const footer = document.querySelector('footer');
 
             if (user) {
+                db.collection('users').doc(user.uid).onSnapshot(doc => {
+                    const data = doc.data();
+                    if(!data) return;
+
+                    if (data.status === 'banned') {
+                        auth.signOut();
+                        alert("Your account has been permanently suspended due to policy violations.");
+                        location.reload();
+                        return;
+                    }
+
+                    currentUserData = data;
+                    document.getElementById('header-user-name').innerText = data.name.split(' ')[0];
+                    document.getElementById('header-user-tier').innerText = (data.tier || 'No') + " Plan";
+                    updateDashboardUI(data);
+
+                    if (data.isAdmin) {
+                        document.getElementById('admin-tab-btn').classList.remove('hidden');
+                        loadAdminData();
+                        updateAdminWalletUI();
+                    }
+                });
+
                 authSection.classList.add('hidden');
                 appSection.classList.remove('hidden');
                 navAuth.classList.remove('hidden');
                 mobileNav.classList.remove('hidden');
-                mobileNav.style.display = 'flex'; // Ensure flex for layout
-                
-                // Keep footer visible on desktop (handled by CSS hidden md:block), 
-                // but we can ensure it shows up in DOM logic here too if needed
-                
-                listenToUserData(user.uid);
+                mobileNav.style.display = 'flex';
                 updateMarketPrices();
-                // Mock prices for smoother demo
-                setInterval(updateMarketPrices, 30000); 
+                startSocialProof(); // Start the fake notifications
             } else {
                 authSection.classList.remove('hidden');
                 appSection.classList.add('hidden');
@@ -636,22 +802,6 @@
             }
         });
 
-        function listenToUserData(uid) {
-            db.collection('users').doc(uid).onSnapshot(doc => {
-                const data = doc.data();
-                if(!data) return;
-                currentUserData = data;
-                document.getElementById('header-user-name').innerText = data.name.split(' ')[0]; // Show first name only on mobile
-                document.getElementById('header-user-tier').innerText = (data.tier || 'No') + " Plan";
-                updateDashboardUI(data);
-                
-                if (data.isAdmin) {
-                    document.getElementById('admin-tab-btn').classList.remove('hidden');
-                    loadAdminData();
-                }
-            });
-        }
-
         const RATES = { Silver: 0.01, Gold: 0.015, Diamond: 0.02 };
 
         function updateDashboardUI(data) {
@@ -660,7 +810,6 @@
             document.getElementById('stat-capital').innerText = `$${capital.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('user-tier-badge').innerText = tier;
             
-            // Show available balance in withdrawal
             const revenueDisplay = document.getElementById('stat-revenue');
 
             if (capital > 0 && data.investmentDate) {
@@ -669,7 +818,6 @@
                 const hoursPassed = (now - start) / (1000 * 60 * 60);
                 const intervals = Math.floor(hoursPassed / 12);
                 const rate = RATES[tier] || 0;
-                // Compound formula: P * (1 + r)^n - P
                 const totalValue = capital * Math.pow(1 + rate, intervals);
                 const profit = totalValue - capital;
                 
@@ -677,14 +825,36 @@
                 document.getElementById('stat-projected').innerText = `$${(capital * Math.pow(1 + rate, intervals + 6) - capital).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
                 document.getElementById('withdraw-max-display').innerText = `$${profit.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
 
+                // Withdrawal Status Logic
                 const daysPassed = hoursPassed / 24;
                 const statusEl = document.getElementById('eligibility-status');
+                
+                // 30 Day Check Logic
+                let lockStatusHtml = '';
                 if (daysPassed >= 30) {
-                    statusEl.innerHTML = `<i class="fas fa-check-circle text-green-500"></i> <span class="text-green-400 font-bold uppercase">Ready for Withdrawal</span>`;
+                    lockStatusHtml = `<div class="flex items-center gap-2"><i class="fas fa-check-circle text-green-500"></i> <span class="text-green-400 font-bold uppercase">Maturity Period: Completed</span></div>`;
                 } else {
                     const daysLeft = Math.ceil(30 - daysPassed);
-                    statusEl.innerHTML = `<i class="fas fa-lock text-yellow-500"></i> <span class="text-slate-300 uppercase">Locked (${daysLeft}d left)</span>`;
+                    lockStatusHtml = `<div class="flex items-center gap-2"><i class="fas fa-lock text-yellow-500"></i> <span class="text-slate-300">Capital Locked: ${daysLeft} days remaining</span></div>`;
                 }
+
+                // 24 Hour Cooldown Check Logic
+                let cooldownHtml = '';
+                if (data.lastWithdrawalDate) {
+                    const lastWithdraw = data.lastWithdrawalDate.toDate();
+                    const hoursSinceLast = (now - lastWithdraw) / (1000 * 60 * 60);
+                    if (hoursSinceLast < 24) {
+                        const hoursLeft = Math.ceil(24 - hoursSinceLast);
+                        cooldownHtml = `<div class="flex items-center gap-2"><i class="fas fa-hourglass-half text-orange-500"></i> <span class="text-slate-300">Cooldown: ${hoursLeft}h remaining</span></div>`;
+                    } else {
+                        cooldownHtml = `<div class="flex items-center gap-2"><i class="fas fa-check text-blue-500"></i> <span class="text-blue-400">Daily Limit: Available</span></div>`;
+                    }
+                } else {
+                    cooldownHtml = `<div class="flex items-center gap-2"><i class="fas fa-check text-blue-500"></i> <span class="text-blue-400">Daily Limit: Available</span></div>`;
+                }
+
+                statusEl.innerHTML = lockStatusHtml + cooldownHtml;
+
             } else {
                 revenueDisplay.innerText = "$0.00";
                 document.getElementById('stat-projected').innerText = "$0.00";
@@ -695,16 +865,12 @@
 
         async function updateMarketPrices() {
             try {
-                // Fetching real data
                 const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd');
                 const data = await res.json();
                 document.getElementById('price-btc').innerText = `$${data.bitcoin.usd.toLocaleString()}`;
                 document.getElementById('price-eth').innerText = `$${data.ethereum.usd.toLocaleString()}`;
                 document.getElementById('price-sol').innerText = `$${data.solana.usd.toLocaleString()}`;
-            } catch (e) { 
-                console.warn("Market data unavailable, using fallback"); 
-                // Fallback prevents UI from looking broken if API limit hit
-            }
+            } catch (e) { console.warn("Market data unavailable"); }
         }
 
         function showTab(tabId) {
@@ -715,16 +881,12 @@
             });
             document.getElementById(`tab-${tabId}`).classList.add('active');
             
-            // Highlight active button (handling both desktop and mobile buttons if they share logic)
-            // Ideally we find the button that called this, but we can query by text/onclick too
             const btns = document.querySelectorAll(`button[onclick="showTab('${tabId}')"]`);
             btns.forEach(btn => {
-                // If it's a tab button (not mobile nav item)
                 if(btn.classList.contains('tab-btn')) {
                     btn.classList.remove('text-slate-400');
                     btn.classList.add('bg-blue-600', 'text-white');
                 }
-                // Mobile nav highlighting
                 if(btn.parentElement.id === 'mobile-nav') {
                     document.querySelectorAll('#mobile-nav button').forEach(b => b.classList.replace('text-blue-400', 'text-slate-500'));
                     btn.classList.replace('text-slate-500', 'text-blue-400');
@@ -732,13 +894,12 @@
             });
         }
 
-        // --- NEW DEPOSIT MODAL LOGIC ---
+        // --- DEPOSIT MODAL ---
         let pendingTier = null;
 
         function initiateDeposit(tier) {
             pendingTier = tier;
             document.getElementById('dep-modal-title').innerText = `${tier} Deposit`;
-            // Reset to Step 1
             backToStep1();
             document.getElementById('deposit-modal').classList.remove('hidden');
         }
@@ -749,7 +910,21 @@
 
         function showAddressView(type) {
             const addr = globalSettings[type] || 'Contact Support';
+            const qrUrl = globalSettings[`${type}_qr`];
+            
             document.getElementById('deposit-address-display').value = addr;
+            
+            const qrImg = document.getElementById('deposit-qr-img');
+            const qrIcon = document.getElementById('deposit-qr-icon');
+            
+            if (qrUrl) {
+                qrImg.src = qrUrl;
+                qrImg.classList.remove('hidden');
+                qrIcon.classList.add('hidden');
+            } else {
+                qrImg.classList.add('hidden');
+                qrIcon.classList.remove('hidden');
+            }
             
             document.getElementById('dep-step-1').classList.add('hidden');
             document.getElementById('dep-step-2').classList.remove('hidden');
@@ -758,7 +933,6 @@
         function backToStep1() {
             document.getElementById('dep-step-2').classList.add('hidden');
             document.getElementById('dep-step-1').classList.remove('hidden');
-            // Reset button text
             const btn = document.getElementById('copy-btn-main');
             btn.innerHTML = '<i class="far fa-copy"></i> Copy Address';
             btn.classList.remove('bg-green-600', 'hover:bg-green-500');
@@ -768,16 +942,14 @@
         function copyAddress() {
             const copyText = document.getElementById("deposit-address-display");
             copyText.select();
-            copyText.setSelectionRange(0, 99999); /* For mobile devices */
+            copyText.setSelectionRange(0, 99999);
             
-            // Modern clipboard API with fallback
             if (navigator.clipboard && window.isSecureContext) {
                  navigator.clipboard.writeText(copyText.value);
             } else {
                 document.execCommand('copy');
             }
 
-            // Visual feedback
             const btn = document.getElementById('copy-btn-main');
             btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
             btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
@@ -792,35 +964,108 @@
             }, 2000);
         }
 
-        // --- WITHDRAWAL LOGIC ---
+        // --- WITHDRAWAL LOGIC (UPDATED WITH STRICT LIMITS) ---
         function setMaxWithdraw() {
             const revenueText = document.getElementById('stat-revenue').innerText.replace('$','').replace(',','');
             const revenue = parseFloat(revenueText) || 0;
             document.getElementById('withdraw-amount').value = revenue;
         }
 
-        function requestWithdrawal() {
+        async function requestWithdrawal() {
             const amount = document.getElementById('withdraw-amount').value;
             const max = parseFloat(document.getElementById('stat-revenue').innerText.replace('$','').replace(',',''));
             
             if (!amount || amount <= 0) return showToast("Enter a valid amount", true);
             if (amount > max) return showToast("Insufficient available balance", true);
+
+            // 1. Check 30-Day Lock
+            if (currentUserData.investmentDate) {
+                const start = currentUserData.investmentDate.toDate();
+                const now = new Date();
+                const diffTime = Math.abs(now - start);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                
+                if (diffDays < 30) {
+                    const remaining = 30 - diffDays;
+                    return showToast(`Capital locked. Available in ${remaining} days.`, true);
+                }
+            } else {
+                return showToast("No active investment found.", true);
+            }
+
+            // 2. Check 24-Hour Cooldown
+            if (currentUserData.lastWithdrawalDate) {
+                const last = currentUserData.lastWithdrawalDate.toDate();
+                const now = new Date();
+                const diffMs = now - last;
+                const diffHours = diffMs / (1000 * 60 * 60);
+
+                if (diffHours < 24) {
+                    const hoursLeft = Math.ceil(24 - diffHours);
+                    return showToast(`Daily limit reached. Wait ${hoursLeft} hours.`, true);
+                }
+            }
             
-            showToast("Withdrawal ticket #88291 generated.");
-            document.getElementById('withdraw-amount').value = '';
+            // If Checks Pass:
+            try {
+                // Update last withdrawal time to prevent double withdraws
+                await db.collection('users').doc(currentUserData.uid).update({
+                    lastWithdrawalDate: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast("Withdrawal ticket generated. Status: Pending Admin Approval");
+                document.getElementById('withdraw-amount').value = '';
+            } catch(e) {
+                showToast("Error processing request: " + e.message, true);
+            }
         }
 
         // --- ADMIN FUNCTIONS ---
-        async function saveGlobalAddresses() {
+        const uploadedQRs = {}; 
+
+        function handleQRUpload(input, type) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById(`preview-qr-${type}`);
+                    const icon = document.getElementById(`icon-qr-${type}`);
+                    img.src = e.target.result;
+                    img.classList.remove('hidden');
+                    icon.classList.add('hidden');
+                    document.getElementById(`status-qr-${type}`).innerText = input.files[0].name;
+                };
+                reader.readAsDataURL(input.files[0]);
+                uploadedQRs[type] = input.files[0];
+            }
+        }
+
+        async function saveGlobalData() {
+            const updateData = {
+                btc: document.getElementById('admin-addr-btc').value,
+                eth: document.getElementById('admin-addr-eth').value,
+                usdt: document.getElementById('admin-addr-usdt').value,
+                sol: document.getElementById('admin-addr-sol').value
+            };
+
+            showToast("Saving...");
+
             try {
-                await db.collection('settings').doc('wallets').set({
-                    btc: document.getElementById('admin-addr-btc').value,
-                    eth: document.getElementById('admin-addr-eth').value,
-                    usdt: document.getElementById('admin-addr-usdt').value,
-                    sol: document.getElementById('admin-addr-sol').value
-                }, { merge: true });
-                showToast("Global addresses updated.");
-            } catch (e) { showToast(e.message, true); }
+                for (const type of ['btc', 'eth', 'usdt', 'sol']) {
+                    if (uploadedQRs[type]) {
+                        const file = uploadedQRs[type];
+                        const ref = storage.ref(`admin/qr_codes/${type}_qr_${Date.now()}`);
+                        await ref.put(file);
+                        const url = await ref.getDownloadURL();
+                        updateData[`${type}_qr`] = url; 
+                    }
+                }
+
+                await db.collection('settings').doc('wallets').set(updateData, { merge: true });
+                showToast("Settings and QRs updated successfully!");
+                uploadedQRs = {}; 
+            } catch (e) {
+                console.error(e);
+                showToast("Error saving: " + e.message, true);
+            }
         }
 
         async function loadAdminData() {
@@ -835,22 +1080,38 @@
                 snapshot.forEach(doc => {
                     const u = doc.data();
                     
-                    // Accumulate platform stats
                     totalCapital += (u.investedCapital || 0);
                     if ((u.investedCapital || 0) > 0) activeUsers++;
 
-                    // Render table row (exclude current admin)
                     if (u.uid === auth.currentUser.uid) return;
                     
+                    let statusBadge = '';
+                    let statusColor = '';
+                    if (u.status === 'banned') {
+                        statusBadge = 'BANNED';
+                        statusColor = 'bg-red-500/20 text-red-500 border-red-500/50';
+                    } else if (u.status === 'suspended') {
+                        statusBadge = 'SUSPENDED';
+                        statusColor = 'bg-orange-500/20 text-orange-500 border-orange-500/50';
+                    } else {
+                        statusBadge = 'ACTIVE';
+                        statusColor = 'bg-green-500/20 text-green-500 border-green-500/50';
+                    }
+
                     list.innerHTML += `
                         <tr class="hover:bg-slate-800/30 border-b border-slate-800/50 last:border-0 transition-colors">
-                            <td class="py-4">
+                            <td class="py-4 pr-4">
                                 <p class="font-bold text-sm text-slate-200">${u.name}</p>
-                                <p class="text-[10px] text-slate-500 font-mono truncate max-w-[100px]">${u.email}</p>
+                                <p class="text-[10px] text-slate-500 font-mono truncate max-w-[150px]">${u.email}</p>
                             </td>
                             <td><span class="text-[10px] px-2 py-1 bg-slate-800 text-slate-300 rounded-lg border border-slate-700 font-bold">${u.tier}</span></td>
                             <td class="font-bold text-sm text-blue-400 font-mono">$${(u.investedCapital || 0).toLocaleString()}</td>
-                            <td><button onclick="updateUserPrompt('${u.uid}')" class="text-xs bg-blue-600/10 hover:bg-blue-600 text-blue-500 hover:text-white px-3 py-1.5 rounded-lg transition-all font-bold">MANAGE</button></td>
+                            <td><span class="text-[10px] px-2 py-1 rounded border ${statusColor} font-bold tracking-wide">${statusBadge}</span></td>
+                            <td class="text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button onclick="manageUser('${u.uid}', '${u.name}', '${u.status || 'active'}')" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg transition-all font-bold">Manage</button>
+                                </div>
+                            </td>
                         </tr>
                     `;
                 });
@@ -861,19 +1122,39 @@
             });
         }
 
-        async function updateUserPrompt(uid) {
-            const newCapital = prompt("Update Capital (USD):");
-            if (newCapital === null) return;
-            const newTier = prompt("Assign Tier (Silver, Gold, Diamond, None):");
-            if (newTier === null) return;
+        async function manageUser(uid, name, currentStatus) {
+            const action = prompt(`Manage User: ${name}\n\nType an action number:\n1. Update Capital/Tier\n2. Suspend User\n3. Ban User\n4. Activate User\n\nCurrent Status: ${currentStatus}`);
+            
+            if (!action) return;
 
-            if (newCapital !== null && newTier !== null) {
+            if (action === '1') {
+                const newCapital = prompt("Update Capital (USD):");
+                if (newCapital === null) return;
+                const newTier = prompt("Assign Tier (Silver, Gold, Diamond, None):");
+                if (newTier === null) return;
+                
                 await db.collection('users').doc(uid).update({
                     investedCapital: parseFloat(newCapital) || 0,
                     tier: newTier || 'None',
                     investmentDate: firebase.firestore.Timestamp.now()
                 });
-                showToast("User details updated.");
+                showToast("User financials updated");
+            } 
+            else if (action === '2') {
+                if(confirm("Suspend this user?")) {
+                    await db.collection('users').doc(uid).update({ status: 'suspended' });
+                    showToast("User suspended");
+                }
+            }
+            else if (action === '3') {
+                if(confirm("BAN this user?")) {
+                    await db.collection('users').doc(uid).update({ status: 'banned' });
+                    showToast("User banned");
+                }
+            }
+            else if (action === '4') {
+                await db.collection('users').doc(uid).update({ status: 'active' });
+                showToast("User activated");
             }
         }
 
