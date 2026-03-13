@@ -5,13 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nexus Crypto Broker | Institutional Grade Trading</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Firebase App (Compat) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
@@ -23,7 +16,6 @@
             -webkit-tap-highlight-color: transparent;
         }
         
-        /* Glassmorphism */
         .glass { 
             background: rgba(15, 23, 42, 0.7); 
             backdrop-filter: blur(16px); 
@@ -39,7 +31,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Social Proof Popup Animation */
         .social-toast {
             transform: translateX(-120%);
             transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -48,7 +39,6 @@
             transform: translateX(0);
         }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -83,7 +73,6 @@
         <!-- Auth Section -->
         <div id="auth-section" class="flex items-center justify-center min-h-[85vh] p-4">
             <div class="glass p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl border-t-4 border-blue-500 relative overflow-hidden">
-                <!-- Decorative background elements -->
                 <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                 
                 <h1 class="text-2xl md:text-3xl font-bold text-center mb-2">Welcome Back</h1>
@@ -250,7 +239,6 @@
                 <!-- Tab: Wallet -->
                 <div id="tab-wallet" class="tab-content">
                     <div class="glass p-6 md:p-10 rounded-[2.5rem] max-w-2xl mx-auto shadow-2xl relative overflow-hidden">
-                        <!-- Decorative background -->
                         <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600"></div>
 
                         <div class="flex items-center gap-4 mb-8">
@@ -547,8 +535,39 @@
         <span id="toast-msg" class="text-sm font-semibold text-white">Notification</span>
     </div>
 
-    <script>
-        // --- FIREBASE CONFIG ---
+    <!-- FIREBASE MODULAR SCRIPT -->
+    <script type="module">
+        // Import Firebase modules (v12.10.0)
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
+        import { getAnalytics } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js';
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            onAuthStateChanged, 
+            signOut 
+        } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            updateDoc, 
+            getDoc, 
+            onSnapshot, 
+            collection, 
+            serverTimestamp, 
+            Timestamp 
+        } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+        import { 
+            getStorage, 
+            ref, 
+            uploadBytes, 
+            getDownloadURL 
+        } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js';
+
+        // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyDRwQQt0pX8ftTQRVlTODwcXQiVoYJYgvM",
             authDomain: "mbtechinvest.firebaseapp.com",
@@ -559,43 +578,64 @@
             measurementId: "G-2LBHLP78K1"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const storage = firebase.storage();
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
 
+        // Global variables
         let currentUserData = null;
         let globalSettings = {};
-        
-        // Security & Rate Limiting
         let lastAuthAttempt = 0;
         const AUTH_COOLDOWN = 2000;
+        let pendingTier = null;
+        let uploadedQRs = {};   // for admin QR uploads
 
-        // --- SOCIAL PROOF NOTIFICATIONS ---
+        // --- Helper: Show toast ---
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const text = document.getElementById('toast-msg');
+            
+            text.innerText = msg;
+            
+            if(isError) {
+                t.className = "fixed top-4 left-1/2 -translate-x-1/2 translate-y-4 transition-all duration-300 bg-red-500/90 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl z-[150] flex items-center gap-3 min-w-[300px] justify-center border border-red-400/50";
+                icon.className = "fas fa-exclamation-circle text-white";
+            } else {
+                t.className = "fixed top-4 left-1/2 -translate-x-1/2 translate-y-4 transition-all duration-300 bg-blue-600/90 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl z-[150] flex items-center gap-3 min-w-[300px] justify-center border border-blue-400/50";
+                icon.className = "fas fa-check-circle text-white";
+            }
+
+            setTimeout(() => {
+                t.classList.remove('translate-y-4');
+                t.classList.add('-translate-y-24');
+            }, 3000);
+        }
+
+        // --- Social Proof (unchanged) ---
         const fakeNames = ["Alexander M.", "Sarah K.", "David L.", "Michael B.", "Jessica R.", "Daniel T.", "Emma W.", "James H.", "Olivia P.", "William S."];
         const fakeActions = ["deposited", "withdrew"];
         const fakeCurrencies = ["BTC", "ETH", "USDT", "SOL"];
-        
+
         function startSocialProof() {
-            // Initial delay then random intervals
             setTimeout(triggerSocialProof, 3000);
         }
 
         function triggerSocialProof() {
-            // Generate random data
             const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
             const action = fakeActions[Math.floor(Math.random() * fakeActions.length)];
             const currency = fakeCurrencies[Math.floor(Math.random() * fakeCurrencies.length)];
             
-            // Generate realistic amounts based on action
             let amount;
             if (action === "deposited") {
-                amount = Math.floor(Math.random() * (5000 - 500) + 500); // 500 to 5000
+                amount = Math.floor(Math.random() * (5000 - 500) + 500);
             } else {
-                amount = Math.floor(Math.random() * (2000 - 100) + 100); // 100 to 2000
+                amount = Math.floor(Math.random() * (2000 - 100) + 100);
             }
 
-            // Color coding
             const colorClass = action === "deposited" ? "text-green-400" : "text-blue-400";
             const iconClass = action === "deposited" ? "fa-arrow-down text-green-500" : "fa-arrow-up text-blue-500";
 
@@ -618,32 +658,92 @@
 
             container.appendChild(toast);
 
-            // Animate in
             requestAnimationFrame(() => {
                 toast.classList.add('show');
             });
 
-            // Remove after 4 seconds
             setTimeout(() => {
                 toast.classList.remove('show');
                 setTimeout(() => toast.remove(), 500);
             }, 4000);
 
-            // Schedule next one (randomly between 8 and 20 seconds)
             const nextInterval = Math.floor(Math.random() * (20000 - 8000) + 8000);
             setTimeout(triggerSocialProof, nextInterval);
         }
 
-        // --- GLOBAL SETTINGS LISTENER ---
-        db.collection('settings').doc('wallets').onSnapshot(doc => {
-            if (doc.exists) {
-                globalSettings = doc.data();
-                if (currentUserData?.isAdmin) {
-                    updateAdminWalletUI();
-                }
-            }
-        });
+        // --- Market Prices (unchanged) ---
+        async function updateMarketPrices() {
+            try {
+                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd');
+                const data = await res.json();
+                document.getElementById('price-btc').innerText = `$${data.bitcoin.usd.toLocaleString()}`;
+                document.getElementById('price-eth').innerText = `$${data.ethereum.usd.toLocaleString()}`;
+                document.getElementById('price-sol').innerText = `$${data.solana.usd.toLocaleString()}`;
+            } catch (e) { console.warn("Market data unavailable"); }
+        }
 
+        // --- Rates for plans ---
+        const RATES = { Silver: 0.01, Gold: 0.015, Diamond: 0.02 };
+
+        // --- UI Update after user data ---
+        function updateDashboardUI(data) {
+            const capital = data.investedCapital || 0;
+            const tier = data.tier || 'None';
+            document.getElementById('stat-capital').innerText = `$${capital.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('user-tier-badge').innerText = tier;
+            
+            const revenueDisplay = document.getElementById('stat-revenue');
+
+            if (capital > 0 && data.investmentDate) {
+                const start = data.investmentDate.toDate();
+                const now = new Date();
+                const hoursPassed = (now - start) / (1000 * 60 * 60);
+                const intervals = Math.floor(hoursPassed / 12);
+                const rate = RATES[tier] || 0;
+                const totalValue = capital * Math.pow(1 + rate, intervals);
+                const profit = totalValue - capital;
+                
+                revenueDisplay.innerText = `$${profit.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                document.getElementById('stat-projected').innerText = `$${(capital * Math.pow(1 + rate, intervals + 6) - profit).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                document.getElementById('withdraw-max-display').innerText = `$${profit.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+                // Withdrawal Status Logic
+                const daysPassed = hoursPassed / 24;
+                const statusEl = document.getElementById('eligibility-status');
+                
+                let lockStatusHtml = '';
+                if (daysPassed >= 30) {
+                    lockStatusHtml = `<div class="flex items-center gap-2"><i class="fas fa-check-circle text-green-500"></i> <span class="text-green-400 font-bold uppercase">Maturity Period: Completed</span></div>`;
+                } else {
+                    const daysLeft = Math.ceil(30 - daysPassed);
+                    lockStatusHtml = `<div class="flex items-center gap-2"><i class="fas fa-lock text-yellow-500"></i> <span class="text-slate-300">Capital Locked: ${daysLeft} days remaining</span></div>`;
+                }
+
+                let cooldownHtml = '';
+                if (data.lastWithdrawalDate) {
+                    const lastWithdraw = data.lastWithdrawalDate.toDate();
+                    const hoursSinceLast = (now - lastWithdraw) / (1000 * 60 * 60);
+                    if (hoursSinceLast < 24) {
+                        const hoursLeft = Math.ceil(24 - hoursSinceLast);
+                        cooldownHtml = `<div class="flex items-center gap-2"><i class="fas fa-hourglass-half text-orange-500"></i> <span class="text-slate-300">Cooldown: ${hoursLeft}h remaining</span></div>`;
+                    } else {
+                        cooldownHtml = `<div class="flex items-center gap-2"><i class="fas fa-check text-blue-500"></i> <span class="text-blue-400">Daily Limit: Available</span></div>`;
+                    }
+                } else {
+                    cooldownHtml = `<div class="flex items-center gap-2"><i class="fas fa-check text-blue-500"></i> <span class="text-blue-400">Daily Limit: Available</span></div>`;
+                }
+
+                statusEl.innerHTML = lockStatusHtml + cooldownHtml;
+
+            } else {
+                revenueDisplay.innerText = "$0.00";
+                document.getElementById('stat-projected').innerText = "$0.00";
+                document.getElementById('withdraw-max-display').innerText = "$0.00";
+                document.getElementById('eligibility-status').innerHTML = `<i class="fas fa-info-circle text-blue-500"></i> <span class="text-slate-400">No active investment</span>`;
+            }
+        }
+
+        // --- Admin UI: update wallet inputs from globalSettings ---
         function updateAdminWalletUI() {
             const types = ['btc', 'eth', 'usdt', 'sol'];
             types.forEach(type => {
@@ -665,7 +765,65 @@
             });
         }
 
-        // --- AUTH & SECURITY ---
+        // --- Global settings listener ---
+        onSnapshot(doc(db, 'settings', 'wallets'), (docSnap) => {
+            if (docSnap.exists()) {
+                globalSettings = docSnap.data();
+                if (currentUserData?.isAdmin) {
+                    updateAdminWalletUI();
+                }
+            }
+        });
+
+        // --- Auth state listener ---
+        onAuthStateChanged(auth, (user) => {
+            const appSection = document.getElementById('app-section');
+            const authSection = document.getElementById('auth-section');
+            const navAuth = document.getElementById('nav-auth-info');
+            const mobileNav = document.getElementById('mobile-nav');
+
+            if (user) {
+                // Listen to user document
+                onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+                    const data = docSnap.data();
+                    if(!data) return;
+
+                    if (data.status === 'banned') {
+                        signOut(auth);
+                        alert("Your account has been permanently suspended due to policy violations.");
+                        location.reload();
+                        return;
+                    }
+
+                    currentUserData = data;
+                    document.getElementById('header-user-name').innerText = data.name.split(' ')[0];
+                    document.getElementById('header-user-tier').innerText = (data.tier || 'No') + " Plan";
+                    updateDashboardUI(data);
+
+                    if (data.isAdmin) {
+                        document.getElementById('admin-tab-btn').classList.remove('hidden');
+                        loadAdminData();
+                        updateAdminWalletUI();
+                    }
+                });
+
+                authSection.classList.add('hidden');
+                appSection.classList.remove('hidden');
+                navAuth.classList.remove('hidden');
+                mobileNav.classList.remove('hidden');
+                mobileNav.style.display = 'flex';
+                updateMarketPrices();
+                startSocialProof();
+            } else {
+                authSection.classList.remove('hidden');
+                appSection.classList.add('hidden');
+                navAuth.classList.add('hidden');
+                mobileNav.classList.add('hidden');
+                mobileNav.style.display = 'none';
+            }
+        });
+
+        // --- Authentication functions (exposed globally) ---
         function toggleAuth(isLogin) {
             document.getElementById('login-form').classList.toggle('hidden', !isLogin);
             document.getElementById('signup-form').classList.toggle('hidden', isLogin);
@@ -695,8 +853,8 @@
             if(pass.length < 6) return showToast("Password must be at least 6 characters", true);
 
             try {
-                const cred = await auth.createUserWithEmailAndPassword(email, pass);
-                await db.collection('users').doc(cred.user.uid).set({
+                const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                await setDoc(doc(db, 'users', cred.user.uid), {
                     uid: cred.user.uid,
                     name: name.replace(/[<>]/g, ''),
                     email: email,
@@ -708,9 +866,9 @@
                     investedCapital: 0,
                     tier: 'None',
                     status: 'active',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdAt: serverTimestamp(),
                     investmentDate: null,
-                    lastWithdrawalDate: null, // Track withdrawals
+                    lastWithdrawalDate: null,
                     isAdmin: false
                 });
                 showToast("Account Created Successfully!");
@@ -722,21 +880,21 @@
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
             try { 
-                await auth.signInWithEmailAndPassword(email, pass); 
+                await signInWithEmailAndPassword(auth, email, pass); 
                 showToast("Access Granted");
             } catch (e) { showToast(e.message, true); }
         }
 
         async function googleSignIn() {
             if(!checkRateLimit()) return;
-            const provider = new firebase.auth.GoogleAuthProvider();
+            const provider = new GoogleAuthProvider();
             try {
-                const result = await auth.signInWithPopup(provider);
+                const result = await signInWithPopup(auth, provider);
                 const user = result.user;
-                const docRef = db.collection('users').doc(user.uid);
-                const doc = await docRef.get();
-                if (!doc.exists) {
-                    await docRef.set({
+                const docRef = doc(db, 'users', user.uid);
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    await setDoc(docRef, {
                         uid: user.uid,
                         name: user.displayName,
                         email: user.email,
@@ -744,7 +902,7 @@
                         investedCapital: 0,
                         tier: 'None',
                         status: 'active',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        createdAt: serverTimestamp(),
                         investmentDate: null,
                         lastWithdrawalDate: null,
                         isAdmin: false
@@ -754,125 +912,9 @@
             } catch (e) { showToast(e.message, true); }
         }
 
-        function logout() { auth.signOut(); location.reload(); }
+        function logout() { signOut(auth); location.reload(); }
 
-        auth.onAuthStateChanged(user => {
-            const appSection = document.getElementById('app-section');
-            const authSection = document.getElementById('auth-section');
-            const navAuth = document.getElementById('nav-auth-info');
-            const mobileNav = document.getElementById('mobile-nav');
-
-            if (user) {
-                db.collection('users').doc(user.uid).onSnapshot(doc => {
-                    const data = doc.data();
-                    if(!data) return;
-
-                    if (data.status === 'banned') {
-                        auth.signOut();
-                        alert("Your account has been permanently suspended due to policy violations.");
-                        location.reload();
-                        return;
-                    }
-
-                    currentUserData = data;
-                    document.getElementById('header-user-name').innerText = data.name.split(' ')[0];
-                    document.getElementById('header-user-tier').innerText = (data.tier || 'No') + " Plan";
-                    updateDashboardUI(data);
-
-                    if (data.isAdmin) {
-                        document.getElementById('admin-tab-btn').classList.remove('hidden');
-                        loadAdminData();
-                        updateAdminWalletUI();
-                    }
-                });
-
-                authSection.classList.add('hidden');
-                appSection.classList.remove('hidden');
-                navAuth.classList.remove('hidden');
-                mobileNav.classList.remove('hidden');
-                mobileNav.style.display = 'flex';
-                updateMarketPrices();
-                startSocialProof(); // Start the fake notifications
-            } else {
-                authSection.classList.remove('hidden');
-                appSection.classList.add('hidden');
-                navAuth.classList.add('hidden');
-                mobileNav.classList.add('hidden');
-                mobileNav.style.display = 'none';
-            }
-        });
-
-        const RATES = { Silver: 0.01, Gold: 0.015, Diamond: 0.02 };
-
-        function updateDashboardUI(data) {
-            const capital = data.investedCapital || 0;
-            const tier = data.tier || 'None';
-            document.getElementById('stat-capital').innerText = `$${capital.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('user-tier-badge').innerText = tier;
-            
-            const revenueDisplay = document.getElementById('stat-revenue');
-
-            if (capital > 0 && data.investmentDate) {
-                const start = data.investmentDate.toDate();
-                const now = new Date();
-                const hoursPassed = (now - start) / (1000 * 60 * 60);
-                const intervals = Math.floor(hoursPassed / 12);
-                const rate = RATES[tier] || 0;
-                const totalValue = capital * Math.pow(1 + rate, intervals);
-                const profit = totalValue - capital;
-                
-                revenueDisplay.innerText = `$${profit.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                document.getElementById('stat-projected').innerText = `$${(capital * Math.pow(1 + rate, intervals + 6) - capital).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-                document.getElementById('withdraw-max-display').innerText = `$${profit.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-
-                // Withdrawal Status Logic
-                const daysPassed = hoursPassed / 24;
-                const statusEl = document.getElementById('eligibility-status');
-                
-                // 30 Day Check Logic
-                let lockStatusHtml = '';
-                if (daysPassed >= 30) {
-                    lockStatusHtml = `<div class="flex items-center gap-2"><i class="fas fa-check-circle text-green-500"></i> <span class="text-green-400 font-bold uppercase">Maturity Period: Completed</span></div>`;
-                } else {
-                    const daysLeft = Math.ceil(30 - daysPassed);
-                    lockStatusHtml = `<div class="flex items-center gap-2"><i class="fas fa-lock text-yellow-500"></i> <span class="text-slate-300">Capital Locked: ${daysLeft} days remaining</span></div>`;
-                }
-
-                // 24 Hour Cooldown Check Logic
-                let cooldownHtml = '';
-                if (data.lastWithdrawalDate) {
-                    const lastWithdraw = data.lastWithdrawalDate.toDate();
-                    const hoursSinceLast = (now - lastWithdraw) / (1000 * 60 * 60);
-                    if (hoursSinceLast < 24) {
-                        const hoursLeft = Math.ceil(24 - hoursSinceLast);
-                        cooldownHtml = `<div class="flex items-center gap-2"><i class="fas fa-hourglass-half text-orange-500"></i> <span class="text-slate-300">Cooldown: ${hoursLeft}h remaining</span></div>`;
-                    } else {
-                        cooldownHtml = `<div class="flex items-center gap-2"><i class="fas fa-check text-blue-500"></i> <span class="text-blue-400">Daily Limit: Available</span></div>`;
-                    }
-                } else {
-                    cooldownHtml = `<div class="flex items-center gap-2"><i class="fas fa-check text-blue-500"></i> <span class="text-blue-400">Daily Limit: Available</span></div>`;
-                }
-
-                statusEl.innerHTML = lockStatusHtml + cooldownHtml;
-
-            } else {
-                revenueDisplay.innerText = "$0.00";
-                document.getElementById('stat-projected').innerText = "$0.00";
-                document.getElementById('withdraw-max-display').innerText = "$0.00";
-                document.getElementById('eligibility-status').innerHTML = `<i class="fas fa-info-circle text-blue-500"></i> <span class="text-slate-400">No active investment</span>`;
-            }
-        }
-
-        async function updateMarketPrices() {
-            try {
-                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd');
-                const data = await res.json();
-                document.getElementById('price-btc').innerText = `$${data.bitcoin.usd.toLocaleString()}`;
-                document.getElementById('price-eth').innerText = `$${data.ethereum.usd.toLocaleString()}`;
-                document.getElementById('price-sol').innerText = `$${data.solana.usd.toLocaleString()}`;
-            } catch (e) { console.warn("Market data unavailable"); }
-        }
-
+        // --- Tabs ---
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => {
@@ -894,9 +936,7 @@
             });
         }
 
-        // --- DEPOSIT MODAL ---
-        let pendingTier = null;
-
+        // --- Deposit Modal ---
         function initiateDeposit(tier) {
             pendingTier = tier;
             document.getElementById('dep-modal-title').innerText = `${tier} Deposit`;
@@ -964,7 +1004,7 @@
             }, 2000);
         }
 
-        // --- WITHDRAWAL LOGIC (UPDATED WITH STRICT LIMITS) ---
+        // --- Withdrawal ---
         function setMaxWithdraw() {
             const revenueText = document.getElementById('stat-revenue').innerText.replace('$','').replace(',','');
             const revenue = parseFloat(revenueText) || 0;
@@ -978,7 +1018,6 @@
             if (!amount || amount <= 0) return showToast("Enter a valid amount", true);
             if (amount > max) return showToast("Insufficient available balance", true);
 
-            // 1. Check 30-Day Lock
             if (currentUserData.investmentDate) {
                 const start = currentUserData.investmentDate.toDate();
                 const now = new Date();
@@ -993,7 +1032,6 @@
                 return showToast("No active investment found.", true);
             }
 
-            // 2. Check 24-Hour Cooldown
             if (currentUserData.lastWithdrawalDate) {
                 const last = currentUserData.lastWithdrawalDate.toDate();
                 const now = new Date();
@@ -1006,11 +1044,9 @@
                 }
             }
             
-            // If Checks Pass:
             try {
-                // Update last withdrawal time to prevent double withdraws
-                await db.collection('users').doc(currentUserData.uid).update({
-                    lastWithdrawalDate: firebase.firestore.FieldValue.serverTimestamp()
+                await updateDoc(doc(db, 'users', currentUserData.uid), {
+                    lastWithdrawalDate: serverTimestamp()
                 });
                 showToast("Withdrawal ticket generated. Status: Pending Admin Approval");
                 document.getElementById('withdraw-amount').value = '';
@@ -1019,9 +1055,7 @@
             }
         }
 
-        // --- ADMIN FUNCTIONS ---
-        const uploadedQRs = {}; 
-
+        // --- Admin Functions ---
         function handleQRUpload(input, type) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -1052,14 +1086,14 @@
                 for (const type of ['btc', 'eth', 'usdt', 'sol']) {
                     if (uploadedQRs[type]) {
                         const file = uploadedQRs[type];
-                        const ref = storage.ref(`admin/qr_codes/${type}_qr_${Date.now()}`);
-                        await ref.put(file);
-                        const url = await ref.getDownloadURL();
+                        const storageRef = ref(storage, `admin/qr_codes/${type}_qr_${Date.now()}`);
+                        await uploadBytes(storageRef, file);
+                        const url = await getDownloadURL(storageRef);
                         updateData[`${type}_qr`] = url; 
                     }
                 }
 
-                await db.collection('settings').doc('wallets').set(updateData, { merge: true });
+                await setDoc(doc(db, 'settings', 'wallets'), updateData, { merge: true });
                 showToast("Settings and QRs updated successfully!");
                 uploadedQRs = {}; 
             } catch (e) {
@@ -1069,7 +1103,7 @@
         }
 
         async function loadAdminData() {
-            db.collection('users').onSnapshot(snapshot => {
+            onSnapshot(collection(db, 'users'), (snapshot) => {
                 const list = document.getElementById('admin-user-list');
                 list.innerHTML = '';
                 
@@ -1077,13 +1111,13 @@
                 let activeUsers = 0;
                 let totalUsers = snapshot.size;
 
-                snapshot.forEach(doc => {
-                    const u = doc.data();
+                snapshot.forEach(docSnap => {
+                    const u = docSnap.data();
                     
                     totalCapital += (u.investedCapital || 0);
                     if ((u.investedCapital || 0) > 0) activeUsers++;
 
-                    if (u.uid === auth.currentUser.uid) return;
+                    if (u.uid === auth.currentUser?.uid) return;
                     
                     let statusBadge = '';
                     let statusColor = '';
@@ -1133,51 +1167,48 @@
                 const newTier = prompt("Assign Tier (Silver, Gold, Diamond, None):");
                 if (newTier === null) return;
                 
-                await db.collection('users').doc(uid).update({
+                await updateDoc(doc(db, 'users', uid), {
                     investedCapital: parseFloat(newCapital) || 0,
                     tier: newTier || 'None',
-                    investmentDate: firebase.firestore.Timestamp.now()
+                    investmentDate: Timestamp.now()
                 });
                 showToast("User financials updated");
             } 
             else if (action === '2') {
                 if(confirm("Suspend this user?")) {
-                    await db.collection('users').doc(uid).update({ status: 'suspended' });
+                    await updateDoc(doc(db, 'users', uid), { status: 'suspended' });
                     showToast("User suspended");
                 }
             }
             else if (action === '3') {
                 if(confirm("BAN this user?")) {
-                    await db.collection('users').doc(uid).update({ status: 'banned' });
+                    await updateDoc(doc(db, 'users', uid), { status: 'banned' });
                     showToast("User banned");
                 }
             }
             else if (action === '4') {
-                await db.collection('users').doc(uid).update({ status: 'active' });
+                await updateDoc(doc(db, 'users', uid), { status: 'active' });
                 showToast("User activated");
             }
         }
 
-        function showToast(msg, isError = false) {
-            const t = document.getElementById('toast');
-            const icon = document.getElementById('toast-icon');
-            const text = document.getElementById('toast-msg');
-            
-            text.innerText = msg;
-            
-            if(isError) {
-                t.className = "fixed top-4 left-1/2 -translate-x-1/2 translate-y-4 transition-all duration-300 bg-red-500/90 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl z-[150] flex items-center gap-3 min-w-[300px] justify-center border border-red-400/50";
-                icon.className = "fas fa-exclamation-circle text-white";
-            } else {
-                t.className = "fixed top-4 left-1/2 -translate-x-1/2 translate-y-4 transition-all duration-300 bg-blue-600/90 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl z-[150] flex items-center gap-3 min-w-[300px] justify-center border border-blue-400/50";
-                icon.className = "fas fa-check-circle text-white";
-            }
-
-            setTimeout(() => {
-                t.classList.remove('translate-y-4');
-                t.classList.add('-translate-y-24');
-            }, 3000);
-        }
+        // --- Expose functions globally (for inline onclick handlers) ---
+        window.toggleAuth = toggleAuth;
+        window.signUp = signUp;
+        window.login = login;
+        window.googleSignIn = googleSignIn;
+        window.logout = logout;
+        window.showTab = showTab;
+        window.initiateDeposit = initiateDeposit;
+        window.closeDepModal = closeDepModal;
+        window.showAddressView = showAddressView;
+        window.backToStep1 = backToStep1;
+        window.copyAddress = copyAddress;
+        window.setMaxWithdraw = setMaxWithdraw;
+        window.requestWithdrawal = requestWithdrawal;
+        window.handleQRUpload = handleQRUpload;
+        window.saveGlobalData = saveGlobalData;
+        window.manageUser = manageUser;
     </script>
 </body>
 </html>
